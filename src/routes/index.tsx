@@ -1,5 +1,5 @@
 import { motion } from "motion/react";
-import { Link } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import { SiteNav } from "@/components/site-nav";
 import { Brand } from "@/components/brand";
 import { DashboardPreview } from "@/components/dashboard-preview";
@@ -34,7 +34,7 @@ const testimonials = [
   { q: "Finally an analytics tool that doesn't look like SAP from 2008. Our clients actually open the reports.", a: "Priya Shah", r: "Founder, Above Studio" },
 ];
 
-export const Route = (await import("@tanstack/react-router")).createFileRoute("/")({
+export const Route = createFileRoute("/")({
   component: Landing,
   head: () => ({
     meta: [
