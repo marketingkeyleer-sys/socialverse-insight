@@ -1,22 +1,47 @@
 import { motion } from "motion/react";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import { Brand } from "@/components/brand";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
   head: () => ({ meta: [{ title: "Sign in · SocialVerse Analytics" }] }),
 });
 
-const providers = [
-  { id: "meta", label: "Continue with Meta", c: "var(--violet)" },
-  { id: "google", label: "Continue with Google", c: "var(--cyan)" },
-  { id: "linkedin", label: "Continue with LinkedIn", c: "var(--cyan)" },
-  { id: "tiktok", label: "Continue with TikTok", c: "var(--lime)" },
-  { id: "x", label: "Continue with X", c: "var(--amber)" },
-];
-
 function LoginPage() {
   const navigate = useNavigate();
+  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    try {
+      if (mode === "signup") {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { emailRedirectTo: window.location.origin + "/dashboard" },
+        });
+        if (error) throw error;
+        navigate({ to: "/dashboard" });
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        navigate({ to: "/dashboard" });
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Authentication failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="relative min-h-screen overflow-hidden">
       <div className="absolute inset-0 bg-hero-glow" />
@@ -29,48 +54,57 @@ function LoginPage() {
           transition={{ duration: 0.6 }}
           className="glass shadow-card rounded-2xl p-8"
         >
-          <h1 className="font-display text-3xl">Welcome back</h1>
+          <h1 className="font-display text-3xl">
+            {mode === "signin" ? "Welcome back" : "Create your account"}
+          </h1>
           <p className="mt-2 text-sm text-muted-foreground">
             Sign in to connect your social accounts.
           </p>
-          <div className="mt-8 space-y-2">
-            {providers.map((p) => (
-              <button
-                key={p.id}
-                onClick={() => navigate({ to: "/dashboard" })}
-                className="flex w-full items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm transition hover:bg-white/10"
-              >
-                <span className="flex items-center gap-3">
-                  <span className="h-2.5 w-2.5 rounded-full" style={{ background: p.c }} />
-                  {p.label}
-                </span>
-                <span className="text-muted-foreground">→</span>
-              </button>
-            ))}
-          </div>
-          <div className="my-6 flex items-center gap-3 text-[10px] uppercase tracking-widest text-muted-foreground">
-            <div className="h-px flex-1 bg-white/10" /> or <div className="h-px flex-1 bg-white/10" />
-          </div>
-          <form
-            className="space-y-3"
-            onSubmit={(e) => { e.preventDefault(); navigate({ to: "/dashboard" }); }}
-          >
+
+          {error && (
+            <div className="mt-4 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="mt-6 space-y-3">
             <input
               type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               placeholder="you@brand.com"
               className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none placeholder:text-muted-foreground focus:border-primary"
             />
             <input
               type="password"
+              required
+              minLength={6}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               placeholder="Password"
               className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none placeholder:text-muted-foreground focus:border-primary"
             />
-            <button className="w-full rounded-xl bg-gradient-primary py-3 text-sm font-medium text-background shadow-glow">
-              Sign in
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full rounded-xl bg-gradient-primary py-3 text-sm font-medium text-background shadow-glow disabled:opacity-60"
+            >
+              {loading ? "…" : mode === "signin" ? "Sign in" : "Create account"}
             </button>
           </form>
+
+          <button
+            type="button"
+            onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
+            className="mt-4 w-full text-center text-xs text-muted-foreground hover:text-foreground"
+          >
+            {mode === "signin" ? "No account? Create one" : "Already have an account? Sign in"}
+          </button>
+
           <p className="mt-6 text-center text-xs text-muted-foreground">
-            No account? <Link to="/dashboard" className="text-foreground underline">Try the demo dashboard</Link>
+            After signing in, connect your social accounts from{" "}
+            <Link to="/connections" className="text-foreground underline">/connections</Link>.
           </p>
         </motion.div>
       </div>

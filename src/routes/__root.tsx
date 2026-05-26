@@ -110,10 +110,27 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-
   return (
     <QueryClientProvider client={queryClient}>
+      <AuthSync />
       <Outlet />
     </QueryClientProvider>
   );
+}
+
+function AuthSync() {
+  const { queryClient } = Route.useRouteContext();
+  // Invalidate all queries when auth state changes
+  if (typeof window !== "undefined") {
+    // dynamic import to keep SSR clean
+    import("@/integrations/supabase/client").then(({ supabase }) => {
+      const w = window as unknown as { __authSubInit?: boolean };
+      if (w.__authSubInit) return;
+      w.__authSubInit = true;
+      supabase.auth.onAuthStateChange(() => {
+        queryClient.invalidateQueries();
+      });
+    });
+  }
+  return null;
 }

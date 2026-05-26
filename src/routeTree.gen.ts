@@ -11,7 +11,10 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as ConnectionsRouteImport } from './routes/connections'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiOauthStartRouteImport } from './routes/api/oauth/start'
+import { Route as ApiOauthPlatformCallbackRouteImport } from './routes/api/oauth/$platform.callback'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -23,40 +26,87 @@ const DashboardRoute = DashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ConnectionsRoute = ConnectionsRouteImport.update({
+  id: '/connections',
+  path: '/connections',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiOauthStartRoute = ApiOauthStartRouteImport.update({
+  id: '/api/oauth/start',
+  path: '/api/oauth/start',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiOauthPlatformCallbackRoute =
+  ApiOauthPlatformCallbackRouteImport.update({
+    id: '/api/oauth/$platform/callback',
+    path: '/api/oauth/$platform/callback',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/connections': typeof ConnectionsRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
+  '/api/oauth/start': typeof ApiOauthStartRoute
+  '/api/oauth/$platform/callback': typeof ApiOauthPlatformCallbackRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/connections': typeof ConnectionsRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
+  '/api/oauth/start': typeof ApiOauthStartRoute
+  '/api/oauth/$platform/callback': typeof ApiOauthPlatformCallbackRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/connections': typeof ConnectionsRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
+  '/api/oauth/start': typeof ApiOauthStartRoute
+  '/api/oauth/$platform/callback': typeof ApiOauthPlatformCallbackRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dashboard' | '/login'
+  fullPaths:
+    | '/'
+    | '/connections'
+    | '/dashboard'
+    | '/login'
+    | '/api/oauth/start'
+    | '/api/oauth/$platform/callback'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/login'
-  id: '__root__' | '/' | '/dashboard' | '/login'
+  to:
+    | '/'
+    | '/connections'
+    | '/dashboard'
+    | '/login'
+    | '/api/oauth/start'
+    | '/api/oauth/$platform/callback'
+  id:
+    | '__root__'
+    | '/'
+    | '/connections'
+    | '/dashboard'
+    | '/login'
+    | '/api/oauth/start'
+    | '/api/oauth/$platform/callback'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ConnectionsRoute: typeof ConnectionsRoute
   DashboardRoute: typeof DashboardRoute
   LoginRoute: typeof LoginRoute
+  ApiOauthStartRoute: typeof ApiOauthStartRoute
+  ApiOauthPlatformCallbackRoute: typeof ApiOauthPlatformCallbackRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -75,6 +125,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/connections': {
+      id: '/connections'
+      path: '/connections'
+      fullPath: '/connections'
+      preLoaderRoute: typeof ConnectionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -82,13 +139,30 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/oauth/start': {
+      id: '/api/oauth/start'
+      path: '/api/oauth/start'
+      fullPath: '/api/oauth/start'
+      preLoaderRoute: typeof ApiOauthStartRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/oauth/$platform/callback': {
+      id: '/api/oauth/$platform/callback'
+      path: '/api/oauth/$platform/callback'
+      fullPath: '/api/oauth/$platform/callback'
+      preLoaderRoute: typeof ApiOauthPlatformCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ConnectionsRoute: ConnectionsRoute,
   DashboardRoute: DashboardRoute,
   LoginRoute: LoginRoute,
+  ApiOauthStartRoute: ApiOauthStartRoute,
+  ApiOauthPlatformCallbackRoute: ApiOauthPlatformCallbackRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
