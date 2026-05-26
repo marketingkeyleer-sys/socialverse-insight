@@ -12,6 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiOauthStartRouteImport } from './routes/api/oauth/start'
+import { Route as ApiOauthPlatformCallbackRouteImport } from './routes/api/oauth/$platform.callback'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -28,35 +30,70 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiOauthStartRoute = ApiOauthStartRouteImport.update({
+  id: '/api/oauth/start',
+  path: '/api/oauth/start',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiOauthPlatformCallbackRoute =
+  ApiOauthPlatformCallbackRouteImport.update({
+    id: '/api/oauth/$platform/callback',
+    path: '/api/oauth/$platform/callback',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
+  '/api/oauth/start': typeof ApiOauthStartRoute
+  '/api/oauth/$platform/callback': typeof ApiOauthPlatformCallbackRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
+  '/api/oauth/start': typeof ApiOauthStartRoute
+  '/api/oauth/$platform/callback': typeof ApiOauthPlatformCallbackRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
+  '/api/oauth/start': typeof ApiOauthStartRoute
+  '/api/oauth/$platform/callback': typeof ApiOauthPlatformCallbackRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dashboard' | '/login'
+  fullPaths:
+    | '/'
+    | '/dashboard'
+    | '/login'
+    | '/api/oauth/start'
+    | '/api/oauth/$platform/callback'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/login'
-  id: '__root__' | '/' | '/dashboard' | '/login'
+  to:
+    | '/'
+    | '/dashboard'
+    | '/login'
+    | '/api/oauth/start'
+    | '/api/oauth/$platform/callback'
+  id:
+    | '__root__'
+    | '/'
+    | '/dashboard'
+    | '/login'
+    | '/api/oauth/start'
+    | '/api/oauth/$platform/callback'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRoute
   LoginRoute: typeof LoginRoute
+  ApiOauthStartRoute: typeof ApiOauthStartRoute
+  ApiOauthPlatformCallbackRoute: typeof ApiOauthPlatformCallbackRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -82,6 +119,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/oauth/start': {
+      id: '/api/oauth/start'
+      path: '/api/oauth/start'
+      fullPath: '/api/oauth/start'
+      preLoaderRoute: typeof ApiOauthStartRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/oauth/$platform/callback': {
+      id: '/api/oauth/$platform/callback'
+      path: '/api/oauth/$platform/callback'
+      fullPath: '/api/oauth/$platform/callback'
+      preLoaderRoute: typeof ApiOauthPlatformCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -89,7 +140,19 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRoute,
   LoginRoute: LoginRoute,
+  ApiOauthStartRoute: ApiOauthStartRoute,
+  ApiOauthPlatformCallbackRoute: ApiOauthPlatformCallbackRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
