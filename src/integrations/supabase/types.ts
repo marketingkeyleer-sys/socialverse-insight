@@ -14,7 +14,93 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      connected_accounts: {
+        Row: {
+          access_token_ciphertext: string
+          account_handle: string | null
+          avatar_url: string | null
+          connected_at: string
+          display_name: string | null
+          expires_at: string | null
+          id: string
+          meta: Json
+          platform: Database["public"]["Enums"]["social_platform"]
+          provider_account_id: string
+          refresh_iv: string | null
+          refresh_token_ciphertext: string | null
+          scopes: string[]
+          token_iv: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token_ciphertext: string
+          account_handle?: string | null
+          avatar_url?: string | null
+          connected_at?: string
+          display_name?: string | null
+          expires_at?: string | null
+          id?: string
+          meta?: Json
+          platform: Database["public"]["Enums"]["social_platform"]
+          provider_account_id: string
+          refresh_iv?: string | null
+          refresh_token_ciphertext?: string | null
+          scopes?: string[]
+          token_iv: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token_ciphertext?: string
+          account_handle?: string | null
+          avatar_url?: string | null
+          connected_at?: string
+          display_name?: string | null
+          expires_at?: string | null
+          id?: string
+          meta?: Json
+          platform?: Database["public"]["Enums"]["social_platform"]
+          provider_account_id?: string
+          refresh_iv?: string | null
+          refresh_token_ciphertext?: string | null
+          scopes?: string[]
+          token_iv?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      oauth_states: {
+        Row: {
+          code_verifier: string | null
+          created_at: string
+          expires_at: string
+          platform: Database["public"]["Enums"]["social_platform"]
+          redirect_to: string | null
+          state: string
+          user_id: string
+        }
+        Insert: {
+          code_verifier?: string | null
+          created_at?: string
+          expires_at?: string
+          platform: Database["public"]["Enums"]["social_platform"]
+          redirect_to?: string | null
+          state: string
+          user_id: string
+        }
+        Update: {
+          code_verifier?: string | null
+          created_at?: string
+          expires_at?: string
+          platform?: Database["public"]["Enums"]["social_platform"]
+          redirect_to?: string | null
+          state?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +109,13 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      social_platform:
+        | "instagram"
+        | "facebook"
+        | "linkedin"
+        | "youtube"
+        | "tiktok"
+        | "x"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +242,15 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      social_platform: [
+        "instagram",
+        "facebook",
+        "linkedin",
+        "youtube",
+        "tiktok",
+        "x",
+      ],
+    },
   },
 } as const
