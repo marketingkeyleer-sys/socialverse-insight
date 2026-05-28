@@ -1,33 +1,28 @@
 import { motion } from "motion/react";
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import {
-  AreaChart, Area, BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
+  AreaChart, Area, LineChart, Line, PieChart, Pie, Cell,
   ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid, Legend,
 } from "recharts";
 import { Brand } from "@/components/brand";
-import {
-  kpis, platforms, growthSeries, platformShare, adSpendSeries, topPosts, messages,
-} from "@/lib/mock-data";
+import { supabase } from "@/integrations/supabase/client";
+import { getSocialDashboard, type SocialDashboardData } from "@/lib/social-analytics.functions";
+
+type Platform = SocialDashboardData["platforms"][number];
+type Kpi = SocialDashboardData["kpis"][number];
 
 export const Route = createFileRoute("/dashboard")({
+  beforeLoad: async () => {
+    const { data } = await supabase.auth.getUser();
+    if (!data.user) throw redirect({ to: "/login" });
+  },
   component: Dashboard,
   head: () => ({ meta: [{ title: "Dashboard · SocialVerse Analytics" }] }),
 });
 
-const nav = [
-  { label: "Overview", active: true },
-  { label: "Instagram" },
-  { label: "TikTok" },
-  { label: "YouTube" },
-  { label: "LinkedIn" },
-  { label: "Facebook" },
-  { label: "X / Twitter" },
-  { label: "Ads" },
-  { label: "Inbox" },
-  { label: "Content" },
-  { label: "AI co-pilot" },
-  { label: "Reports" },
-];
+const platformNav = ["Overview", "Instagram", "Facebook", "YouTube", "LinkedIn", "Reports"];
 
 function Sidebar() {
   return (
@@ -35,49 +30,52 @@ function Sidebar() {
       <div className="px-6 py-5"><Brand /></div>
       <nav className="flex-1 px-3 py-2 text-sm">
         <div className="px-3 pb-2 text-[10px] uppercase tracking-widest text-muted-foreground">Workspace</div>
-        {nav.map((n) => (
+        {platformNav.map((label, index) => (
           <button
-            key={n.label}
+            key={label}
             className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition ${
-              n.active ? "bg-white/10 text-foreground" : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
+              index === 0 ? "bg-white/10 text-foreground" : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
             }`}
           >
-            <span className={`h-1.5 w-1.5 rounded-full ${n.active ? "bg-primary" : "bg-muted-foreground/40"}`} />
-            {n.label}
+            <span className={`h-1.5 w-1.5 rounded-full ${index === 0 ? "bg-primary" : "bg-muted-foreground/40"}`} />
+            {label}
           </button>
         ))}
       </nav>
-      <div className="m-3 rounded-xl bg-gradient-primary p-4 text-background">
-        <div className="text-xs font-medium opacity-80">Upgrade</div>
-        <div className="font-display text-lg leading-tight">Go Pro — unlock all platforms</div>
-        <button className="mt-3 rounded-full bg-background/90 px-3 py-1.5 text-xs font-medium text-foreground">Upgrade</button>
+      <div className="m-3 rounded-xl border border-white/10 bg-white/5 p-4">
+        <div className="text-xs font-medium text-muted-foreground">Data source</div>
+        <div className="mt-1 font-display text-lg leading-tight">OAuth-connected accounts only</div>
+        <Link to="/connections" className="mt-3 inline-flex rounded-full bg-gradient-primary px-3 py-1.5 text-xs font-medium text-background shadow-glow">
+          Manage connections
+        </Link>
       </div>
     </aside>
   );
 }
 
-function Topbar() {
+function Topbar({ liveCount, connectedCount, refresh }: { liveCount: number; connectedCount: number; refresh: () => void }) {
+  const navigate = useNavigate();
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    navigate({ to: "/login" });
+  };
+
   return (
     <div className="sticky top-0 z-30 flex items-center justify-between border-b border-white/5 bg-background/70 px-6 py-3 backdrop-blur-xl">
       <div>
-        <div className="text-xs text-muted-foreground">Workspace · Northwind Studio</div>
-        <div className="font-display text-xl">Overview</div>
+        <div className="text-xs text-muted-foreground">Workspace · {connectedCount} connected · {liveCount} live</div>
+        <div className="font-display text-xl">Real-time social analytics</div>
       </div>
       <div className="flex items-center gap-2">
-        <div className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-muted-foreground md:flex">
-          <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="9" cy="9" r="6"/><path d="m17 17-3.5-3.5"/></svg>
-          Search analytics, posts, DMs…
-        </div>
-        <button className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs">Last 30 days</button>
-        <button className="rounded-full bg-gradient-primary px-3 py-1.5 text-xs font-medium text-background shadow-glow">Export PDF</button>
-        <Link to="/" className="ml-2 h-8 w-8 rounded-full bg-gradient-primary ring-2 ring-background" />
+        <button onClick={refresh} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs hover:bg-white/10">Refresh</button>
+        <Link to="/connections" className="rounded-full bg-gradient-primary px-3 py-1.5 text-xs font-medium text-background shadow-glow">Connect accounts</Link>
+        <button onClick={signOut} className="hidden rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs hover:bg-white/10 md:inline-flex">Sign out</button>
       </div>
     </div>
   );
 }
 
-function KpiCard({ k, i }: { k: typeof kpis[number]; i: number }) {
-  const positive = k.delta >= 0;
+function KpiCard({ k, i }: { k: Kpi; i: number }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 14 }}
@@ -91,9 +89,7 @@ function KpiCard({ k, i }: { k: typeof kpis[number]; i: number }) {
       />
       <div className="text-xs text-muted-foreground">{k.label}</div>
       <div className="mt-1 font-display text-3xl">{k.value}</div>
-      <div className={`mt-1 inline-flex items-center gap-1 text-xs ${positive ? "text-lime" : "text-destructive"}`}>
-        <span>{positive ? "▲" : "▼"}</span> {Math.abs(k.delta)}% vs. last period
-      </div>
+      <div className="mt-1 text-xs text-muted-foreground">{k.detail}</div>
     </motion.div>
   );
 }
@@ -112,188 +108,191 @@ function Panel({ title, sub, children, className = "" }: { title: string; sub?: 
   );
 }
 
-function Dashboard() {
+function EmptyState() {
+  return (
+    <div className="glass shadow-card rounded-2xl p-8 text-center">
+      <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-gradient-primary text-background">↗</div>
+      <h1 className="mt-5 font-display text-3xl">Connect real social accounts</h1>
+      <p className="mx-auto mt-2 max-w-xl text-sm text-muted-foreground">
+        The dashboard no longer uses demo numbers. Connect Instagram, Facebook Page, YouTube, or LinkedIn to fetch live analytics from the authorized account.
+      </p>
+      <Link to="/connections" className="mt-6 inline-flex rounded-full bg-gradient-primary px-5 py-2.5 text-sm font-medium text-background shadow-glow">
+        Go to connections
+      </Link>
+    </div>
+  );
+}
+
+function PlatformCard({ platform, index }: { platform: Platform; index: number }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.04 }}
+      className="glass shadow-card rounded-2xl p-5"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          {platform.avatarUrl ? (
+            <img src={platform.avatarUrl} alt="" className="h-10 w-10 rounded-xl object-cover" />
+          ) : (
+            <span className="h-10 w-10 rounded-xl" style={{ background: platform.color }} />
+          )}
+          <div className="min-w-0">
+            <div className="text-sm font-medium">{platform.name}</div>
+            <div className="truncate text-xs text-muted-foreground">{platform.accountName}</div>
+          </div>
+        </div>
+        <span className={`rounded-full px-2 py-1 text-[10px] ${platform.live ? "bg-lime/10 text-lime" : platform.connected ? "bg-amber/10 text-amber" : "bg-white/5 text-muted-foreground"}`}>
+          {platform.live ? "Live" : platform.connected ? "Needs access" : "Offline"}
+        </span>
+      </div>
+      <div className="mt-4 grid grid-cols-3 gap-3 text-xs">
+        <div><div className="font-display text-xl">{new Intl.NumberFormat("en", { notation: "compact" }).format(platform.followers)}</div><div className="text-muted-foreground">Followers</div></div>
+        <div><div className="font-display text-xl">{new Intl.NumberFormat("en", { notation: "compact" }).format(platform.reach)}</div><div className="text-muted-foreground">Reach</div></div>
+        <div><div className="font-display text-xl">{platform.engagementRate.toFixed(1)}%</div><div className="text-muted-foreground">Eng.</div></div>
+      </div>
+      <div className="mt-4 h-16">
+        <ResponsiveContainer>
+          <LineChart data={platform.series}>
+            <Line type="monotone" dataKey="reach" stroke={platform.color} strokeWidth={2} dot={false}/>
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="mt-3 border-t border-white/5 pt-3 text-xs text-muted-foreground">{platform.status}</div>
+    </motion.div>
+  );
+}
+
+function LoadingDashboard() {
   return (
     <div className="flex min-h-screen">
       <Sidebar />
       <main className="flex-1">
-        <Topbar />
+        <div className="sticky top-0 z-30 border-b border-white/5 bg-background/70 px-6 py-4 backdrop-blur-xl">
+          <div className="h-6 w-64 animate-pulse rounded bg-white/10" />
+        </div>
+        <div className="grid grid-cols-2 gap-4 p-6 md:grid-cols-3 xl:grid-cols-6">
+          {Array.from({ length: 6 }).map((_, i) => <div key={i} className="glass h-32 animate-pulse rounded-2xl" />)}
+        </div>
+      </main>
+    </div>
+  );
+}
+
+function Dashboard() {
+  const fetchDashboard = useServerFn(getSocialDashboard);
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["social-dashboard"],
+    queryFn: () => fetchDashboard(),
+    refetchOnWindowFocus: false,
+  });
+
+  if (isLoading) return <LoadingDashboard />;
+  if (error || !data) {
+    return (
+      <div className="flex min-h-screen items-center justify-center px-6">
+        <div className="glass max-w-lg rounded-2xl p-6 text-center">
+          <h1 className="font-display text-2xl">Analytics could not load</h1>
+          <p className="mt-2 text-sm text-muted-foreground">{error instanceof Error ? error.message : "Please try again."}</p>
+          <button onClick={() => refetch()} className="mt-5 rounded-full bg-gradient-primary px-4 py-2 text-sm font-medium text-background shadow-glow">Retry</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex min-h-screen">
+      <Sidebar />
+      <main className="flex-1">
+        <Topbar liveCount={data.liveCount} connectedCount={data.connectedCount} refresh={() => refetch()} />
         <div className="space-y-5 p-6">
-          {/* KPIs */}
+          {data.connectedCount === 0 ? <EmptyState /> : null}
+
+          {data.notices.length > 0 && (
+            <div className="rounded-2xl border border-amber/25 bg-amber/10 p-4 text-sm text-amber">
+              {data.notices.map((notice) => <div key={notice.platform}>{notice.platform}: {notice.message}</div>)}
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
-            {kpis.map((k, i) => <KpiCard key={k.label} k={k} i={i} />)}
+            {data.kpis.map((k, i) => <KpiCard key={k.label} k={k} i={i} />)}
           </div>
 
-          {/* Row 1: growth + share */}
           <div className="grid gap-4 xl:grid-cols-3">
-            <Panel title="Audience growth" sub="Followers & reach · last 30 days" className="xl:col-span-2">
+            <Panel title="Audience reach" sub="Live provider data · last 30 days" className="xl:col-span-2">
               <div className="h-72">
                 <ResponsiveContainer>
-                  <AreaChart data={growthSeries}>
+                  <AreaChart data={data.growthSeries}>
                     <defs>
-                      <linearGradient id="d1" x1="0" x2="0" y1="0" y2="1">
+                      <linearGradient id="reachFill" x1="0" x2="0" y1="0" y2="1">
                         <stop offset="0%" stopColor="oklch(0.70 0.22 295)" stopOpacity={0.7}/>
                         <stop offset="100%" stopColor="oklch(0.70 0.22 295)" stopOpacity={0}/>
                       </linearGradient>
-                      <linearGradient id="d2" x1="0" x2="0" y1="0" y2="1">
+                      <linearGradient id="impressionFill" x1="0" x2="0" y1="0" y2="1">
                         <stop offset="0%" stopColor="oklch(0.82 0.15 195)" stopOpacity={0.55}/>
                         <stop offset="100%" stopColor="oklch(0.82 0.15 195)" stopOpacity={0}/>
                       </linearGradient>
                     </defs>
                     <CartesianGrid stroke="oklch(1 0 0 / 0.05)" vertical={false} />
-                    <XAxis dataKey="day" stroke="oklch(0.70 0.03 270)" fontSize={11} tickLine={false} axisLine={false}/>
+                    <XAxis dataKey="label" stroke="oklch(0.70 0.03 270)" fontSize={11} tickLine={false} axisLine={false}/>
                     <YAxis stroke="oklch(0.70 0.03 270)" fontSize={11} tickLine={false} axisLine={false}/>
                     <Tooltip contentStyle={{ background: "oklch(0.20 0.024 270)", border: "1px solid oklch(1 0 0 / 0.1)", borderRadius: 12, fontSize: 12 }}/>
-                    <Area type="monotone" dataKey="followers" stroke="oklch(0.70 0.22 295)" fill="url(#d1)" strokeWidth={2}/>
-                    <Area type="monotone" dataKey="reach" stroke="oklch(0.82 0.15 195)" fill="url(#d2)" strokeWidth={2}/>
+                    <Area type="monotone" dataKey="reach" stroke="oklch(0.70 0.22 295)" fill="url(#reachFill)" strokeWidth={2}/>
+                    <Area type="monotone" dataKey="impressions" stroke="oklch(0.82 0.15 195)" fill="url(#impressionFill)" strokeWidth={2}/>
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
             </Panel>
-            <Panel title="Platform mix" sub="Followers distribution">
+            <Panel title="Platform mix" sub="Follower distribution">
               <div className="h-72">
-                <ResponsiveContainer>
-                  <PieChart>
-                    <Pie data={platformShare} dataKey="value" innerRadius={55} outerRadius={95} paddingAngle={3} stroke="none">
-                      {platformShare.map((p, i) => <Cell key={i} fill={p.color} />)}
-                    </Pie>
-                    <Tooltip contentStyle={{ background: "oklch(0.20 0.024 270)", border: "1px solid oklch(1 0 0 / 0.1)", borderRadius: 12, fontSize: 12 }}/>
-                    <Legend iconType="circle" wrapperStyle={{ fontSize: 11, color: "oklch(0.70 0.03 270)" }}/>
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            </Panel>
-          </div>
-
-          {/* Row 2: platform cards */}
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {platforms.map((p, i) => (
-              <motion.div
-                key={p.id}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.04 }}
-                className="glass shadow-card rounded-2xl p-5"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="h-2.5 w-2.5 rounded-full" style={{ background: p.color }} />
-                    <span className="text-sm font-medium">{p.name}</span>
-                  </div>
-                  <span className={`text-xs ${p.growth >= 0 ? "text-lime" : "text-destructive"}`}>
-                    {p.growth >= 0 ? "▲" : "▼"} {Math.abs(p.growth)}%
-                  </span>
-                </div>
-                <div className="mt-3 font-display text-2xl">{(p.followers / 1000).toFixed(1)}K</div>
-                <div className="text-xs text-muted-foreground">followers</div>
-                <div className="mt-4 h-16">
+                {data.platformShare.length > 0 ? (
                   <ResponsiveContainer>
-                    <LineChart data={growthSeries.slice(-14)}>
-                      <Line type="monotone" dataKey="followers" stroke={p.color} strokeWidth={2} dot={false}/>
-                    </LineChart>
+                    <PieChart>
+                      <Pie data={data.platformShare} dataKey="value" innerRadius={55} outerRadius={95} paddingAngle={3} stroke="none">
+                        {data.platformShare.map((p, i) => <Cell key={i} fill={p.color} />)}
+                      </Pie>
+                      <Tooltip contentStyle={{ background: "oklch(0.20 0.024 270)", border: "1px solid oklch(1 0 0 / 0.1)", borderRadius: 12, fontSize: 12 }}/>
+                      <Legend iconType="circle" wrapperStyle={{ fontSize: 11, color: "oklch(0.70 0.03 270)" }}/>
+                    </PieChart>
                   </ResponsiveContainer>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-
-          {/* Row 3: ads + engagement */}
-          <div className="grid gap-4 xl:grid-cols-3">
-            <Panel title="Ad spend vs ROAS" sub="12-month performance" className="xl:col-span-2">
-              <div className="h-72">
-                <ResponsiveContainer>
-                  <BarChart data={adSpendSeries}>
-                    <CartesianGrid stroke="oklch(1 0 0 / 0.05)" vertical={false} />
-                    <XAxis dataKey="month" stroke="oklch(0.70 0.03 270)" fontSize={11} tickLine={false} axisLine={false}/>
-                    <YAxis stroke="oklch(0.70 0.03 270)" fontSize={11} tickLine={false} axisLine={false}/>
-                    <Tooltip contentStyle={{ background: "oklch(0.20 0.024 270)", border: "1px solid oklch(1 0 0 / 0.1)", borderRadius: 12, fontSize: 12 }}/>
-                    <Bar dataKey="spend" fill="oklch(0.70 0.22 295)" radius={[6,6,0,0]} />
-                    <Bar dataKey="roas" fill="oklch(0.82 0.15 195)" radius={[6,6,0,0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </Panel>
-            <Panel title="Engagement rate" sub="Average across platforms">
-              <div className="h-72">
-                <ResponsiveContainer>
-                  <LineChart data={growthSeries}>
-                    <CartesianGrid stroke="oklch(1 0 0 / 0.05)" vertical={false}/>
-                    <XAxis dataKey="day" stroke="oklch(0.70 0.03 270)" fontSize={11} tickLine={false} axisLine={false}/>
-                    <YAxis stroke="oklch(0.70 0.03 270)" fontSize={11} tickLine={false} axisLine={false}/>
-                    <Tooltip contentStyle={{ background: "oklch(0.20 0.024 270)", border: "1px solid oklch(1 0 0 / 0.1)", borderRadius: 12, fontSize: 12 }}/>
-                    <Line type="monotone" dataKey="engagement" stroke="oklch(0.75 0.20 350)" strokeWidth={2.5} dot={false}/>
-                  </LineChart>
-                </ResponsiveContainer>
+                ) : (
+                  <div className="grid h-full place-items-center text-center text-sm text-muted-foreground">Connect accounts with follower access to see distribution.</div>
+                )}
               </div>
             </Panel>
           </div>
 
-          {/* Row 4: top posts + inbox */}
-          <div className="grid gap-4 xl:grid-cols-3">
-            <Panel title="Top performing posts" sub="By reach · last 30 days" className="xl:col-span-2">
-              <div className="overflow-hidden rounded-xl border border-white/5">
-                <table className="w-full text-sm">
-                  <thead className="bg-white/5 text-xs uppercase tracking-wider text-muted-foreground">
-                    <tr>
-                      <th className="px-4 py-3 text-left font-medium">Platform</th>
-                      <th className="px-4 py-3 text-left font-medium">Post</th>
-                      <th className="px-4 py-3 text-right font-medium">Reach</th>
-                      <th className="px-4 py-3 text-right font-medium">Eng.</th>
-                      <th className="px-4 py-3 text-right font-medium">Likes</th>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {data.platforms.map((platform, index) => <PlatformCard key={platform.id} platform={platform} index={index} />)}
+          </div>
+
+          <Panel title="Top performing posts" sub="Fetched from connected providers">
+            <div className="overflow-hidden rounded-xl border border-white/5">
+              <table className="w-full text-sm">
+                <thead className="bg-white/5 text-xs uppercase tracking-wider text-muted-foreground">
+                  <tr>
+                    <th className="px-4 py-3 text-left font-medium">Platform</th>
+                    <th className="px-4 py-3 text-left font-medium">Post</th>
+                    <th className="px-4 py-3 text-right font-medium">Reach</th>
+                    <th className="px-4 py-3 text-right font-medium">Engagement</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {data.topPosts.length > 0 ? data.topPosts.map((post) => (
+                    <tr key={`${post.platform}-${post.title}`} className="hover:bg-white/5">
+                      <td className="px-4 py-3 text-xs text-muted-foreground">{post.platform}</td>
+                      <td className="px-4 py-3">{post.url ? <a href={post.url} target="_blank" rel="noreferrer" className="hover:text-primary">{post.title}</a> : post.title}</td>
+                      <td className="px-4 py-3 text-right">{new Intl.NumberFormat("en", { notation: "compact" }).format(post.reach)}</td>
+                      <td className="px-4 py-3 text-right text-lime">{new Intl.NumberFormat("en", { notation: "compact" }).format(post.engagement)}</td>
                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/5">
-                    {topPosts.map((p) => (
-                      <tr key={p.title} className="hover:bg-white/5">
-                        <td className="px-4 py-3 text-xs text-muted-foreground">{p.platform}</td>
-                        <td className="px-4 py-3">{p.title}</td>
-                        <td className="px-4 py-3 text-right">{p.reach}</td>
-                        <td className="px-4 py-3 text-right text-lime">{p.eng}</td>
-                        <td className="px-4 py-3 text-right">{p.likes}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </Panel>
-            <Panel title="Unified inbox" sub={`${messages.filter(m => m.unread).length} unread`}>
-              <div className="space-y-1">
-                {messages.map((m) => (
-                  <div key={m.from} className="group flex items-start gap-3 rounded-xl p-3 transition hover:bg-white/5">
-                    <div className="grid h-9 w-9 place-items-center rounded-full bg-gradient-primary text-xs font-medium text-background">
-                      {m.from.replace("@","").slice(0,2).toUpperCase()}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between">
-                        <span className="truncate text-sm">{m.from}</span>
-                        <span className="text-[10px] text-muted-foreground">{m.time}</span>
-                      </div>
-                      <div className="truncate text-xs text-muted-foreground">{m.text}</div>
-                      <div className="mt-1 text-[10px] text-muted-foreground">{m.platform}</div>
-                    </div>
-                    {m.unread && <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-primary" />}
-                  </div>
-                ))}
-              </div>
-            </Panel>
-          </div>
-
-          {/* AI co-pilot */}
-          <div className="relative overflow-hidden rounded-2xl bg-gradient-primary p-6 text-background shadow-glow md:p-8">
-            <div className="absolute -right-10 -top-10 h-48 w-48 rounded-full bg-white/30 blur-3xl"/>
-            <div className="relative flex flex-wrap items-center justify-between gap-6">
-              <div>
-                <div className="text-xs font-medium opacity-80">AI CO-PILOT</div>
-                <h3 className="mt-1 font-display text-2xl md:text-3xl">3 growth experiments ready for this week</h3>
-                <p className="mt-2 max-w-xl text-sm text-background/80">
-                  Based on your last 30 days, posting 9-second TikToks at 18:40 and reusing your top 3 LinkedIn hooks could lift reach by ~24%.
-                </p>
-              </div>
-              <button className="rounded-full bg-background px-5 py-2.5 text-sm font-medium text-foreground hover:opacity-90">
-                Review suggestions
-              </button>
+                  )) : (
+                    <tr><td className="px-4 py-8 text-center text-muted-foreground" colSpan={4}>No post analytics available from the connected providers yet.</td></tr>
+                  )}
+                </tbody>
+              </table>
             </div>
-          </div>
+          </Panel>
         </div>
       </main>
     </div>
