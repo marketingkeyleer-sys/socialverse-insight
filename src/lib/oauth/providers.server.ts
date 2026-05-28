@@ -161,5 +161,6 @@ export function getProviderCreds(p: ProviderConfig) {
 }
 
 export function callbackUrl(origin: string, platform: PlatformId) {
-  return `${origin}/api/oauth/${platform}/callback`;
+  const appOrigin = process.env.APP_URL || process.env.SITE_URL || origin;
+  return `${appOrigin.replace(/\/$/, "")}/api/oauth/${platform}/callback`;
 }
