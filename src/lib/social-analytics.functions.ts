@@ -24,7 +24,7 @@ type ConnectedAccountRow = {
   meta: Record<string, unknown>;
 };
 
-type SeriesPoint = {
+export type SeriesPoint = {
   date: string;
   label: string;
   reach: number;
@@ -32,7 +32,7 @@ type SeriesPoint = {
   engagement: number;
 };
 
-type PlatformAnalytics = {
+export type PlatformAnalytics = {
   id: DashboardPlatform;
   name: string;
   color: string;
@@ -60,6 +60,18 @@ const PLATFORM_META: Record<DashboardPlatform, { name: string; color: string }> 
   facebook: { name: "Facebook Page", color: "var(--violet)" },
   youtube: { name: "YouTube", color: "var(--destructive)" },
   linkedin: { name: "LinkedIn", color: "var(--cyan)" },
+};
+
+export type SocialDashboardData = {
+  generatedAt: string;
+  connectedCount: number;
+  liveCount: number;
+  kpis: Array<{ label: string; value: string; detail: string; accent: string }>;
+  growthSeries: SeriesPoint[];
+  platformShare: Array<{ name: string; value: number; color: string }>;
+  platforms: PlatformAnalytics[];
+  topPosts: PlatformAnalytics["topPosts"];
+  notices: Array<{ platform: string; message: string }>;
 };
 
 const DASHBOARD_PLATFORMS = Object.keys(PLATFORM_META) as DashboardPlatform[];
@@ -520,5 +532,5 @@ export const getSocialDashboard = createServerFn({ method: "GET" })
       platforms: platformResults,
       topPosts: platformResults.flatMap((p) => p.topPosts).sort((a, b) => b.reach - a.reach).slice(0, 12),
       notices: platformResults.filter((p) => p.connected && !p.live).map((p) => ({ platform: p.name, message: p.status })),
-    };
+    } satisfies SocialDashboardData;
   });
