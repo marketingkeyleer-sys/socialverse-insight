@@ -8,11 +8,10 @@ import {
 } from "recharts";
 import { Brand } from "@/components/brand";
 import { supabase } from "@/integrations/supabase/client";
-import { getSocialDashboard } from "@/lib/social-analytics.functions";
+import { getSocialDashboard, type SocialDashboardData } from "@/lib/social-analytics.functions";
 
-type DashboardData = Awaited<ReturnType<ReturnType<typeof useServerFn<typeof getSocialDashboard>>>>;
-type Platform = DashboardData["platforms"][number];
-type Kpi = DashboardData["kpis"][number];
+type Platform = SocialDashboardData["platforms"][number];
+type Kpi = SocialDashboardData["kpis"][number];
 
 export const Route = createFileRoute("/dashboard")({
   beforeLoad: async () => {
