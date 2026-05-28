@@ -15,8 +15,12 @@ async function handle(request: Request, platform: PlatformId) {
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
   const errParam = url.searchParams.get("error");
+  const errDescription = url.searchParams.get("error_description") || url.searchParams.get("error_message");
 
-  if (errParam) return redirect(origin, `/connections?error=${encodeURIComponent(errParam)}`);
+  if (errParam) {
+    const message = errDescription ? `${errParam}: ${errDescription}` : errParam;
+    return redirect(origin, `/connections?error=${encodeURIComponent(message)}`);
+  }
   if (!code || !state) return redirect(origin, "/connections?error=missing_code_or_state");
 
   // Load + delete state (single-use)
@@ -53,7 +57,8 @@ async function handle(request: Request, platform: PlatformId) {
   const tokenJson: any = await tokenRes.json().catch(() => ({}));
   if (!tokenRes.ok || !tokenJson.access_token) {
     console.error(`[oauth] ${platform} token exchange failed`, tokenRes.status, tokenJson);
-    return redirect(origin, `/connections?error=token_exchange_failed`);
+    const details = tokenJson.error_description || tokenJson.error?.message || tokenJson.error || "token_exchange_failed";
+    return redirect(origin, `/connections?error=${encodeURIComponent(String(details))}`);
   }
 
   const accessToken: string = tokenJson.access_token;
