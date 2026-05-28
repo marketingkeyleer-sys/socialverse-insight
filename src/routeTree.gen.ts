@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ConnectionsRouteImport } from './routes/connections'
@@ -16,6 +17,11 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiOauthStartRouteImport } from './routes/api/oauth/start'
 import { Route as ApiOauthPlatformCallbackRouteImport } from './routes/api/oauth/$platform.callback'
 
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -53,6 +59,7 @@ export interface FileRoutesByFullPath {
   '/connections': typeof ConnectionsRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/api/oauth/start': typeof ApiOauthStartRoute
   '/api/oauth/$platform/callback': typeof ApiOauthPlatformCallbackRoute
 }
@@ -61,6 +68,7 @@ export interface FileRoutesByTo {
   '/connections': typeof ConnectionsRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/api/oauth/start': typeof ApiOauthStartRoute
   '/api/oauth/$platform/callback': typeof ApiOauthPlatformCallbackRoute
 }
@@ -70,6 +78,7 @@ export interface FileRoutesById {
   '/connections': typeof ConnectionsRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/api/oauth/start': typeof ApiOauthStartRoute
   '/api/oauth/$platform/callback': typeof ApiOauthPlatformCallbackRoute
 }
@@ -80,6 +89,7 @@ export interface FileRouteTypes {
     | '/connections'
     | '/dashboard'
     | '/login'
+    | '/reset-password'
     | '/api/oauth/start'
     | '/api/oauth/$platform/callback'
   fileRoutesByTo: FileRoutesByTo
@@ -88,6 +98,7 @@ export interface FileRouteTypes {
     | '/connections'
     | '/dashboard'
     | '/login'
+    | '/reset-password'
     | '/api/oauth/start'
     | '/api/oauth/$platform/callback'
   id:
@@ -96,6 +107,7 @@ export interface FileRouteTypes {
     | '/connections'
     | '/dashboard'
     | '/login'
+    | '/reset-password'
     | '/api/oauth/start'
     | '/api/oauth/$platform/callback'
   fileRoutesById: FileRoutesById
@@ -105,12 +117,20 @@ export interface RootRouteChildren {
   ConnectionsRoute: typeof ConnectionsRoute
   DashboardRoute: typeof DashboardRoute
   LoginRoute: typeof LoginRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   ApiOauthStartRoute: typeof ApiOauthStartRoute
   ApiOauthPlatformCallbackRoute: typeof ApiOauthPlatformCallbackRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -161,6 +181,7 @@ const rootRouteChildren: RootRouteChildren = {
   ConnectionsRoute: ConnectionsRoute,
   DashboardRoute: DashboardRoute,
   LoginRoute: LoginRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   ApiOauthStartRoute: ApiOauthStartRoute,
   ApiOauthPlatformCallbackRoute: ApiOauthPlatformCallbackRoute,
 }
