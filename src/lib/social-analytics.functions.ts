@@ -305,7 +305,7 @@ async function fetchInstagram(account: ConnectedAccountRow): Promise<PlatformAna
       `https://graph.facebook.com/v21.0/${ig.id}/media?fields=id,caption,permalink,like_count,comments_count,insights.metric(reach,impressions)&limit=10`,
       page.access_token,
     );
-    topPosts = topMetaPosts(media, "Instagram").map((post) => ({
+    topPosts = topMetaPosts(media, "Instagram").map((post: PlatformAnalytics["topPosts"][number]) => ({
       ...post,
       engagement: post.engagement || 0,
     }));
