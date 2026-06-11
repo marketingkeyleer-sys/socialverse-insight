@@ -9,6 +9,7 @@ import {
 import { Brand } from "@/components/brand";
 import { supabase } from "@/integrations/supabase/client";
 import { getSocialDashboard, type SocialDashboardData } from "@/lib/social-analytics.functions";
+import { getConnectedPlatforms, type PlatformStatus } from "@/lib/connected-platforms.functions";
 
 type Platform = SocialDashboardData["platforms"][number];
 type Kpi = SocialDashboardData["kpis"][number];
