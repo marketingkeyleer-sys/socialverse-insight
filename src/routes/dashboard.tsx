@@ -23,25 +23,59 @@ export const Route = createFileRoute("/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard · SocialVerse Analytics" }] }),
 });
 
-const platformNav = ["Overview", "Instagram", "Facebook", "YouTube", "LinkedIn", "Reports"];
+const platformNav = [
+  { id: "overview" as const, label: "Overview" },
+  { id: "instagram" as const, label: "Instagram" },
+  { id: "facebook" as const, label: "Facebook" },
+  { id: "youtube" as const, label: "YouTube" },
+  { id: "linkedin" as const, label: "LinkedIn" },
+  { id: "reports" as const, label: "Reports" },
+];
 
-function Sidebar() {
+function useConnectedPlatforms() {
+  const fetchPlatforms = useServerFn(getConnectedPlatforms);
+  return useQuery({
+    queryKey: ["connected-platforms"],
+    queryFn: () => fetchPlatforms(),
+    refetchOnWindowFocus: false,
+  });
+}
+
+function Sidebar({ active = "overview" }: { active?: string }) {
+  const { data: platformsData } = useConnectedPlatforms();
+  const connectedMap = new Map(
+    platformsData?.platforms.map((p: PlatformStatus) => [p.platform, p.connected]) ?? []
+  );
+
   return (
     <aside className="hidden w-60 shrink-0 flex-col border-r border-white/5 bg-background/40 backdrop-blur-xl lg:flex">
       <div className="px-6 py-5"><Brand /></div>
       <nav className="flex-1 px-3 py-2 text-sm">
         <div className="px-3 pb-2 text-[10px] uppercase tracking-widest text-muted-foreground">Workspace</div>
-        {platformNav.map((label, index) => (
-          <button
-            key={label}
-            className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition ${
-              index === 0 ? "bg-white/10 text-foreground" : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
-            }`}
-          >
-            <span className={`h-1.5 w-1.5 rounded-full ${index === 0 ? "bg-primary" : "bg-muted-foreground/40"}`} />
-            {label}
-          </button>
-        ))}
+        {platformNav.map((item, index) => {
+          const isOverview = item.id === "overview";
+          const isActive = active === item.id;
+          const isConnected = isOverview ? false : connectedMap.get(item.id) ?? false;
+          return (
+            <button
+              key={item.id}
+              className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition ${
+                isActive ? "bg-white/10 text-foreground" : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
+              }`}
+            >
+              <span
+                className={`h-1.5 w-1.5 rounded-full ${
+                  isActive ? "bg-primary" : isConnected ? "bg-lime" : "bg-muted-foreground/40"
+                }`}
+                title={isConnected ? "Connected" : isOverview ? "" : "Not connected"}
+              />
+              <span className="flex-1">{item.label}</span>
+              {isConnected && !isOverview && (
+                <span className="rounded-full bg-lime/10 px-1.5 py-0.5 text-[9px] font-medium text-lime">On</span>
+              )}
+            </button>
+          );
+        })}
       </nav>
       <div className="m-3 rounded-xl border border-white/10 bg-white/5 p-4">
         <div className="text-xs font-medium text-muted-foreground">Data source</div>
