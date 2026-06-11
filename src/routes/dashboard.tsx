@@ -43,7 +43,7 @@ function useConnectedPlatforms() {
 
 function Sidebar({ active = "overview" }: { active?: string }) {
   const { data: platformsData } = useConnectedPlatforms();
-  const connectedMap = new Map(
+  const connectedMap = new Map<string, boolean>(
     platformsData?.platforms.map((p: PlatformStatus) => [p.platform, p.connected]) ?? []
   );
 
