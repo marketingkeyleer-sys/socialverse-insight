@@ -1,6 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { decryptToken, encryptToken } from "@/lib/oauth/crypto.server";
 import type { PlatformId } from "@/lib/oauth/providers.server";
 
@@ -167,6 +166,7 @@ async function usableAccessToken(account: ConnectedAccountRow) {
   if (!tokenRes.ok || !tokenJson.access_token) return accessToken;
 
   const encrypted = await encryptToken(tokenJson.access_token);
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   await supabaseAdmin
     .from("connected_accounts")
     .update({
@@ -478,6 +478,7 @@ async function fetchPlatformAnalytics(account: ConnectedAccountRow): Promise<Pla
 export const getSocialDashboard = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data, error } = await supabaseAdmin
       .from("connected_accounts")
       .select("*")

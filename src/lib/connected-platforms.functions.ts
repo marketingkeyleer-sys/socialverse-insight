@@ -1,6 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 export type PlatformStatus = {
   platform: "instagram" | "facebook" | "youtube" | "linkedin";
@@ -12,7 +11,7 @@ export type PlatformStatus = {
 export const getConnectedPlatforms = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await context.supabase
       .from("connected_accounts")
       .select("platform, display_name, account_handle, avatar_url")
       .eq("user_id", context.userId)

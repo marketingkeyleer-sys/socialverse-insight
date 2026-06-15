@@ -1,8 +1,10 @@
 import { motion } from "motion/react";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { useEffect, useState } from "react";
 import { Brand } from "@/components/brand";
 import { supabase } from "@/integrations/supabase/client";
+import { ensureCurrentUserProfile } from "@/lib/profile.functions";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -11,12 +13,19 @@ export const Route = createFileRoute("/login")({
 
 function LoginPage() {
   const navigate = useNavigate();
+  const ensureProfile = useServerFn(ensureCurrentUserProfile);
   const [mode, setMode] = useState<"signin" | "signup" | "reset">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) navigate({ to: "/dashboard", replace: true });
+    });
+  }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,16 +44,23 @@ function LoginPage() {
       }
 
       if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email: normalizedEmail,
           password,
           options: { emailRedirectTo: window.location.origin + "/dashboard" },
         });
         if (error) throw error;
+        if (!data.session) {
+          setMessage("Account created. Please check your email, then sign in.");
+          setMode("signin");
+          return;
+        }
+        await ensureProfile().catch((profileError) => console.warn("Profile sync failed", profileError));
         navigate({ to: "/dashboard" });
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
         if (error) throw error;
+        await ensureProfile().catch((profileError) => console.warn("Profile sync failed", profileError));
         navigate({ to: "/dashboard" });
       }
     } catch (err: unknown) {

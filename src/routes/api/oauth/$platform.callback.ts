@@ -1,15 +1,20 @@
 // Public OAuth callback for all platforms. The state we issued maps back to the user.
 // Exchanges code for tokens, persists encrypted, then redirects to /connections.
 import { createFileRoute } from "@tanstack/react-router";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { getProvider, getProviderCreds, callbackUrl, type PlatformId } from "@/lib/oauth/providers.server";
-import { encryptToken } from "@/lib/oauth/crypto.server";
+
+type PlatformId = "instagram" | "facebook" | "linkedin" | "youtube" | "tiktok" | "x";
 
 function redirect(origin: string, path: string) {
   return new Response(null, { status: 302, headers: { Location: `${origin}${path}` } });
 }
 
 async function handle(request: Request, platform: PlatformId) {
+  const [{ supabaseAdmin }, { getProvider, getProviderCreds, callbackUrl }, { encryptToken }] =
+    await Promise.all([
+      import("@/integrations/supabase/client.server"),
+      import("@/lib/oauth/providers.server"),
+      import("@/lib/oauth/crypto.server"),
+    ]);
   const url = new URL(request.url);
   const origin = url.origin;
   const code = url.searchParams.get("code");
