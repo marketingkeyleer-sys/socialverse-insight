@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useEffect } from "react";
 import {
   Outlet,
   Link,
@@ -124,17 +125,23 @@ function RootComponent() {
 
 function AuthSync() {
   const { queryClient } = Route.useRouteContext();
-  // Invalidate all queries when auth state changes
-  if (typeof window !== "undefined") {
-    // dynamic import to keep SSR clean
+  useEffect(() => {
+    let unsubscribe: (() => void) | undefined;
+
     import("@/integrations/supabase/client").then(({ supabase }) => {
-      const w = window as unknown as { __authSubInit?: boolean };
-      if (w.__authSubInit) return;
-      w.__authSubInit = true;
-      supabase.auth.onAuthStateChange(() => {
-        queryClient.invalidateQueries();
+      const { data } = supabase.auth.onAuthStateChange((event, session) => {
+        if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
+        if (event === "SIGNED_OUT") {
+          queryClient.clear();
+          return;
+        }
+        if (session?.user) queryClient.invalidateQueries();
       });
+      unsubscribe = () => data.subscription.unsubscribe();
     });
-  }
+
+    return () => unsubscribe?.();
+  }, [queryClient]);
+
   return null;
 }
