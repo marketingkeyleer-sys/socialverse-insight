@@ -4,9 +4,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { getProvider, getProviderCreds, callbackUrl, type PlatformId } from "@/lib/oauth/providers.server";
-import { randomString, pkceChallenge } from "@/lib/oauth/crypto.server";
 
 export const startOAuth = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -18,6 +15,12 @@ export const startOAuth = createServerFn({ method: "POST" })
     }).parse(input),
   )
   .handler(async ({ data, context }) => {
+    const [{ supabaseAdmin }, { getProvider, getProviderCreds, callbackUrl }, { randomString, pkceChallenge }] =
+      await Promise.all([
+        import("@/integrations/supabase/client.server"),
+        import("@/lib/oauth/providers.server"),
+        import("@/lib/oauth/crypto.server"),
+      ]);
     const provider = getProvider(data.platform);
     const { clientId } = getProviderCreds(provider);
 
@@ -25,7 +28,7 @@ export const startOAuth = createServerFn({ method: "POST" })
     let codeVerifier: string | null = null;
     const params = new URLSearchParams({
       client_id: clientId,
-      redirect_uri: callbackUrl(data.origin, data.platform as PlatformId),
+      redirect_uri: callbackUrl(data.origin, data.platform),
       response_type: "code",
       scope: provider.scopes,
       state,
