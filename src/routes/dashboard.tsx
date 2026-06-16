@@ -1,5 +1,5 @@
 import { motion } from "motion/react";
-import { Link, createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -8,6 +8,7 @@ import {
 } from "recharts";
 import { Brand } from "@/components/brand";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuthReady } from "@/hooks/use-auth-ready";
 import { getSocialDashboard, type SocialDashboardData } from "@/lib/social-analytics.functions";
 import { getConnectedPlatforms, type PlatformStatus } from "@/lib/connected-platforms.functions";
 
@@ -15,10 +16,6 @@ type Platform = SocialDashboardData["platforms"][number];
 type Kpi = SocialDashboardData["kpis"][number];
 
 export const Route = createFileRoute("/dashboard")({
-  beforeLoad: async () => {
-    const { data } = await supabase.auth.getUser();
-    if (!data.user) throw redirect({ to: "/login" });
-  },
   component: Dashboard,
   head: () => ({ meta: [{ title: "Dashboard · SocialVerse Analytics" }] }),
 });
@@ -33,10 +30,12 @@ const platformNav = [
 ];
 
 function useConnectedPlatforms() {
+  const { user, isReady } = useAuthReady();
   const fetchPlatforms = useServerFn(getConnectedPlatforms);
   return useQuery({
-    queryKey: ["connected-platforms"],
+    queryKey: ["connected-platforms", user?.id],
     queryFn: () => fetchPlatforms(),
+    enabled: isReady && !!user,
     refetchOnWindowFocus: false,
   });
 }
@@ -216,14 +215,21 @@ function LoadingDashboard() {
 }
 
 function Dashboard() {
+  const navigate = useNavigate();
+  const { user, isReady } = useAuthReady();
   const fetchDashboard = useServerFn(getSocialDashboard);
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ["social-dashboard"],
+    queryKey: ["social-dashboard", user?.id],
     queryFn: () => fetchDashboard(),
+    enabled: isReady && !!user,
     refetchOnWindowFocus: false,
   });
 
-  if (isLoading) return <LoadingDashboard />;
+  useEffect(() => {
+    if (isReady && !user) navigate({ to: "/login", replace: true });
+  }, [isReady, navigate, user]);
+
+  if (!isReady || !user || isLoading) return <LoadingDashboard />;
   if (error || !data) {
     return (
       <div className="flex min-h-screen items-center justify-center px-6">
