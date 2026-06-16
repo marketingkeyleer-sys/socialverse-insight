@@ -1,4 +1,5 @@
 import { motion } from "motion/react";
+import { useEffect } from "react";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
