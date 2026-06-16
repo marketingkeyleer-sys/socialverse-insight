@@ -24,6 +24,7 @@ const searchSchema = z.object({
 
 export const Route = createFileRoute("/connections")({
   validateSearch: searchSchema,
+  ssr: false,
   beforeLoad: async () => {
     const { data } = await supabase.auth.getUser();
     if (!data.user) throw redirect({ to: "/login" });
