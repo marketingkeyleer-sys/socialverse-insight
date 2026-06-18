@@ -16,6 +16,7 @@ import { Route as ConnectionsRouteImport } from './routes/connections'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiOauthStartRouteImport } from './routes/api/oauth/start'
 import { Route as ApiOauthPlatformCallbackRouteImport } from './routes/api/oauth/$platform.callback'
+import { Route as ApiPublicOauthPlatformCallbackRouteImport } from './routes/api/public/oauth/$platform.callback'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -53,6 +54,12 @@ const ApiOauthPlatformCallbackRoute =
     path: '/api/oauth/$platform/callback',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicOauthPlatformCallbackRoute =
+  ApiPublicOauthPlatformCallbackRouteImport.update({
+    id: '/api/public/oauth/$platform/callback',
+    path: '/api/public/oauth/$platform/callback',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -62,6 +69,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/api/oauth/start': typeof ApiOauthStartRoute
   '/api/oauth/$platform/callback': typeof ApiOauthPlatformCallbackRoute
+  '/api/public/oauth/$platform/callback': typeof ApiPublicOauthPlatformCallbackRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -71,6 +79,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/api/oauth/start': typeof ApiOauthStartRoute
   '/api/oauth/$platform/callback': typeof ApiOauthPlatformCallbackRoute
+  '/api/public/oauth/$platform/callback': typeof ApiPublicOauthPlatformCallbackRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -81,6 +90,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/api/oauth/start': typeof ApiOauthStartRoute
   '/api/oauth/$platform/callback': typeof ApiOauthPlatformCallbackRoute
+  '/api/public/oauth/$platform/callback': typeof ApiPublicOauthPlatformCallbackRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -92,6 +102,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/api/oauth/start'
     | '/api/oauth/$platform/callback'
+    | '/api/public/oauth/$platform/callback'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -101,6 +112,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/api/oauth/start'
     | '/api/oauth/$platform/callback'
+    | '/api/public/oauth/$platform/callback'
   id:
     | '__root__'
     | '/'
@@ -110,6 +122,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/api/oauth/start'
     | '/api/oauth/$platform/callback'
+    | '/api/public/oauth/$platform/callback'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -120,6 +133,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   ApiOauthStartRoute: typeof ApiOauthStartRoute
   ApiOauthPlatformCallbackRoute: typeof ApiOauthPlatformCallbackRoute
+  ApiPublicOauthPlatformCallbackRoute: typeof ApiPublicOauthPlatformCallbackRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -173,6 +187,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiOauthPlatformCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/oauth/$platform/callback': {
+      id: '/api/public/oauth/$platform/callback'
+      path: '/api/public/oauth/$platform/callback'
+      fullPath: '/api/public/oauth/$platform/callback'
+      preLoaderRoute: typeof ApiPublicOauthPlatformCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -184,6 +205,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   ApiOauthStartRoute: ApiOauthStartRoute,
   ApiOauthPlatformCallbackRoute: ApiOauthPlatformCallbackRoute,
+  ApiPublicOauthPlatformCallbackRoute: ApiPublicOauthPlatformCallbackRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
