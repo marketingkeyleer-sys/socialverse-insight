@@ -52,12 +52,20 @@ function ConnectionsPage() {
   });
 
   const connect = async (platform: typeof platforms[number]["id"]) => {
+    const isPreviewFrame = window.self !== window.top;
+    const authWindow = isPreviewFrame ? window.open("about:blank", "_blank") : null;
+
     try {
       const res = await start({
         data: { platform, origin: window.location.origin, redirectTo: "/connections" },
       });
-      window.location.href = res.authorizeUrl;
+      if (authWindow) {
+        authWindow.location.href = res.authorizeUrl;
+        return;
+      }
+      window.location.assign(res.authorizeUrl);
     } catch (e) {
+      authWindow?.close();
       alert(e instanceof Error ? e.message : "Failed to start OAuth flow");
     }
   };
