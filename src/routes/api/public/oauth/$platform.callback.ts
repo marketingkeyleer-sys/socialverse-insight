@@ -1,11 +1,9 @@
-// Public OAuth callback for all platforms. The state we issued maps back to the user.
-// Exchanges code for tokens, persists encrypted, then redirects to /connections.
 import { createFileRoute } from "@tanstack/react-router";
 import { handleOAuthCallback } from "@/lib/oauth/callback-handler";
 
 type PlatformId = "instagram" | "facebook" | "linkedin" | "youtube" | "tiktok" | "x";
 
-export const Route = createFileRoute("/api/oauth/$platform/callback")({
+export const Route = createFileRoute("/api/public/oauth/$platform/callback")({
   server: {
     handlers: {
       GET: async ({ request, params }) => {
