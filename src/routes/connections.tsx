@@ -208,8 +208,8 @@ function ConnectionsPage() {
         <div className="mt-10 rounded-2xl border border-white/5 bg-white/[0.02] p-5 text-xs text-muted-foreground">
           <strong className="text-foreground">Heads up:</strong> To complete an OAuth handshake you
           (the app owner) must register your app with each provider's developer portal, add the
-          callback URL <code className="text-foreground">/api/public/oauth/{"{platform}"}/callback</code>{" "}
-          to its allowed redirects, and store the client ID + secret in this project's secrets
+          exact <code className="text-foreground">redirect_uri</code> values shown above to its allowed redirects,
+          and store the client ID + secret in this project's secrets
           (e.g. <code>META_CLIENT_ID</code>, <code>META_CLIENT_SECRET</code>,{" "}
           <code>LINKEDIN_CLIENT_ID</code>, etc.). Until those are set, the “Connect” button will
           surface a clear error from the provider.
