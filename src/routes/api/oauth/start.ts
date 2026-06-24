@@ -23,12 +23,16 @@ export const startOAuth = createServerFn({ method: "POST" })
       ]);
     const provider = getProvider(data.platform);
     const { clientId } = getProviderCreds(provider);
+    const redirectUri = callbackUrl(data.origin, data.platform);
+    const safeRedirectTo = data.redirectTo?.startsWith("/") && !data.redirectTo.startsWith("//")
+      ? data.redirectTo
+      : "/dashboard";
 
     const state = randomString(32);
     let codeVerifier: string | null = null;
     const params = new URLSearchParams({
       client_id: clientId,
-      redirect_uri: callbackUrl(data.origin, data.platform),
+      redirect_uri: redirectUri,
       response_type: "code",
       scope: provider.scopes,
       state,
@@ -44,17 +48,58 @@ export const startOAuth = createServerFn({ method: "POST" })
       for (const [k, v] of Object.entries(provider.extraAuthParams)) params.set(k, v);
     }
 
+    console.info("[oauth] authorization redirect_uri generated", {
+      provider: provider.name,
+      platform: data.platform,
+      redirect_uri: redirectUri,
+      callback_url: redirectUri,
+      scopes: provider.scopes,
+    });
+
     // Persist state via service role (RLS would also allow user, but admin keeps it simple).
     const { error } = await supabaseAdmin.from("oauth_states").insert({
       state,
       user_id: context.userId,
       platform: data.platform,
       code_verifier: codeVerifier,
-      redirect_to: data.redirectTo ?? "/dashboard",
+      redirect_to: safeRedirectTo,
     });
     if (error) throw new Error(`Failed to persist OAuth state: ${error.message}`);
 
-    return { authorizeUrl: `${provider.authorizeUrl}?${params.toString()}` };
+    return {
+      authorizeUrl: `${provider.authorizeUrl}?${params.toString()}`,
+      debug: {
+        provider: provider.name,
+        platform: data.platform,
+        clientId,
+        redirectUri,
+        scopes: provider.scopes,
+        callbackUrl: redirectUri,
+      },
+    };
+  });
+
+export const getOAuthDebugDetails = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ origin: z.string().url() }).parse(input))
+  .handler(async ({ data }) => {
+    const { getProvider, callbackUrl } = await import("@/lib/oauth/providers.server");
+    const platforms = ["facebook", "instagram", "linkedin", "youtube"] as const;
+
+    return {
+      items: platforms.map((platform) => {
+        const provider = getProvider(platform);
+        const redirectUri = callbackUrl(data.origin, platform);
+        return {
+          provider: provider.name,
+          platform,
+          clientId: process.env[provider.clientIdEnv] || "Not configured",
+          redirectUri,
+          scopes: provider.scopes,
+          callbackUrl: redirectUri,
+        };
+      }),
+    };
   });
 
 // Tiny shim route so TanStack registers something at this path (we only use the serverFn).

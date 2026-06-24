@@ -38,10 +38,17 @@ export async function handleOAuthCallback(request: Request, platform: PlatformId
 
   const provider = getProvider(platform);
   const { clientId, clientSecret } = getProviderCreds(provider);
+  const redirectUri = callbackUrl(origin, platform);
+  console.info("[oauth] callback token exchange redirect_uri", {
+    provider: provider.name,
+    platform,
+    redirect_uri: redirectUri,
+    callback_url: redirectUri,
+  });
   const body = new URLSearchParams({
     grant_type: "authorization_code",
     code,
-    redirect_uri: callbackUrl(origin, platform),
+    redirect_uri: redirectUri,
     client_id: clientId,
   });
   if (provider.pkce && row.code_verifier) body.set("code_verifier", row.code_verifier);
