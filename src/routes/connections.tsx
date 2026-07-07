@@ -14,8 +14,6 @@ const platforms = [
   { id: "facebook", name: "Facebook", color: "var(--violet)" },
   { id: "linkedin", name: "LinkedIn", color: "var(--cyan)" },
   { id: "youtube", name: "YouTube", color: "var(--destructive)" },
-  { id: "tiktok", name: "TikTok", color: "var(--lime)" },
-  { id: "x", name: "X / Twitter", color: "var(--amber)" },
 ] as const;
 
 const searchSchema = z.object({
@@ -38,13 +36,13 @@ function ConnectionsPage() {
   const search = useSearch({ from: "/connections" });
   const navigate = useNavigate();
   const qc = useQueryClient();
+
   const list = useServerFn(listConnectedAccounts);
   const disconnect = useServerFn(disconnectAccount);
   const start = useServerFn(startOAuth);
   const getDebugDetails = useServerFn(getOAuthDebugDetails);
+
   const [pendingPlatform, setPendingPlatform] = useState<string | null>(null);
-  const [manualAuthUrl, setManualAuthUrl] = useState<string | null>(null);
-  const origin = window.location.origin;
 
   const { data, isLoading } = useQuery({
     queryKey: ["connections"],
@@ -52,42 +50,36 @@ function ConnectionsPage() {
   });
 
   const { data: oauthDebug } = useQuery({
-    queryKey: ["oauth-debug", origin],
-    queryFn: () => getDebugDetails({ data: { origin } }),
+    queryKey: ["oauth-debug", window.location.origin],
+    queryFn: () => getDebugDetails({ data: { origin: window.location.origin } }),
   });
 
   const disconnectMut = useMutation({
     mutationFn: (id: string) => disconnect({ data: { id } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["connections"] }),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["connections"] });
+    },
   });
 
   const connect = async (platform: typeof platforms[number]["id"]) => {
-    setPendingPlatform(platform);
-    setManualAuthUrl(null);
-    // Open a blank tab synchronously inside the click handler so popup blockers
-    // (especially inside the Lovable preview iframe) allow it. We navigate the
-    // tab once the authorize URL is ready.
-    const authWindow = window.open("about:blank", "_blank", "noopener,noreferrer");
     try {
-      const res = await start({
-        data: { platform, origin: window.location.origin, redirectTo: "/connections" },
-      });
-      console.info("[oauth] starting full-browser authorization", res.debug);
+      setPendingPlatform(platform);
 
-      if (authWindow && !authWindow.closed) {
-        authWindow.location.href = res.authorizeUrl;
-        return;
+      const res = await start({
+        data: {
+          platform,
+          origin: window.location.origin,
+          redirectTo: "/connections",
+        },
+      });
+
+      if (!res?.authorizeUrl) {
+        throw new Error("Missing authorize URL");
       }
-      // Popup blocked — try same-tab redirect, then fall back to a manual link.
-      try {
-        window.top!.location.href = res.authorizeUrl;
-      } catch {
-        setManualAuthUrl(res.authorizeUrl);
-      }
+
+      window.location.assign(res.authorizeUrl);
     } catch (e) {
-      authWindow?.close();
       alert(e instanceof Error ? e.message : "Failed to start OAuth flow");
-    } finally {
       setPendingPlatform(null);
     }
   };
@@ -114,50 +106,48 @@ function ConnectionsPage() {
       <main className="mx-auto max-w-5xl px-6 py-12">
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
           <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Settings</div>
-          <h1 className="mt-2 font-display text-4xl">Connected accounts</h1>
+          <h1 className="mt-2 text-3xl font-semibold">Connected accounts</h1>
           <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
             Connect each social account once. Tokens are encrypted at rest and only your
-            account can use them — RLS enforces per-user access on the backend.
+            account can use them.
           </p>
         </motion.div>
 
         {search.connected && (
-          <div className="mt-6 rounded-xl border border-lime/30 bg-lime/10 px-4 py-3 text-sm text-lime">
-            ✓ Connected {search.connected}.
+          <div className="mt-6 rounded-xl border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm text-green-400">
+            Connected {search.connected}.
           </div>
         )}
+
         {search.error && (
-          <div className="mt-6 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          <div className="mt-6 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
             {search.error}
-          </div>
-        )}
-        {manualAuthUrl && (
-          <div className="mt-6 rounded-xl border border-amber/30 bg-amber/10 px-4 py-3 text-sm text-amber">
-            Browser blocked the new OAuth window. Open the authorization flow in a full browser window:{" "}
-            <a href={manualAuthUrl} target="_blank" rel="noopener noreferrer" className="font-medium underline">
-              Continue OAuth
-            </a>
           </div>
         )}
 
         <div className="mt-10 grid gap-3 md:grid-cols-2">
           {platforms.map((p) => {
             const connected = connectedByPlatform.get(p.id);
+
             return (
-              <div key={p.id} className="glass shadow-card flex items-center justify-between rounded-2xl p-5">
+              <div
+                key={p.id}
+                className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] p-5"
+              >
                 <div className="flex items-center gap-3">
                   <span className="h-9 w-9 rounded-xl" style={{ background: p.color }} />
                   <div>
                     <div className="text-sm font-medium">{p.name}</div>
                     <div className="text-xs text-muted-foreground">
                       {isLoading
-                        ? "…"
+                        ? "Loading..."
                         : connected
-                          ? `Connected as ${connected.display_name ?? connected.account_handle ?? "your account"}`
-                          : "Not connected"}
+                        ? `Connected as ${connected.display_name ?? connected.account_handle ?? "your account"}`
+                        : "Not connected"}
                     </div>
                   </div>
                 </div>
+
                 {connected ? (
                   <button
                     onClick={() => disconnectMut.mutate(connected.id)}
@@ -169,9 +159,9 @@ function ConnectionsPage() {
                   <button
                     onClick={() => connect(p.id)}
                     disabled={pendingPlatform === p.id}
-                    className="rounded-full bg-gradient-primary px-4 py-2 text-xs font-medium text-background shadow-glow"
+                    className="rounded-full bg-primary px-4 py-2 text-xs font-medium text-white disabled:opacity-60"
                   >
-                    {pendingPlatform === p.id ? "Opening…" : "Connect"}
+                    {pendingPlatform === p.id ? "Redirecting..." : "Connect"}
                   </button>
                 )}
               </div>
@@ -180,17 +170,11 @@ function ConnectionsPage() {
         </div>
 
         <section className="mt-10 rounded-2xl border border-white/5 bg-white/[0.02] p-5">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <h2 className="text-sm font-semibold text-foreground">OAuth debugging</h2>
-              <p className="mt-1 text-xs text-muted-foreground">
-                These are the exact values generated by SocialVerse for this environment.
-              </p>
-            </div>
-            <span className="rounded-full border border-white/10 px-3 py-1 text-[11px] text-muted-foreground">
-              Full browser redirect
-            </span>
-          </div>
+          <h2 className="text-sm font-semibold text-foreground">OAuth debugging</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Verify these values in each provider developer console.
+          </p>
+
           <div className="mt-5 grid gap-3">
             {(oauthDebug?.items ?? []).map((item) => (
               <div key={item.platform} className="rounded-xl border border-white/5 bg-background/40 p-4">
@@ -200,28 +184,21 @@ function ConnectionsPage() {
                 </div>
                 <dl className="mt-3 grid gap-3 text-xs md:grid-cols-[120px_1fr]">
                   <dt className="text-muted-foreground">client_id</dt>
-                  <dd className="break-all font-mono text-foreground">{item.clientId}</dd>
+                  <dd className="break-all font-mono">{item.clientId}</dd>
+
                   <dt className="text-muted-foreground">redirect_uri</dt>
-                  <dd className="break-all font-mono text-foreground">{item.redirectUri}</dd>
+                  <dd className="break-all font-mono">{item.redirectUri}</dd>
+
                   <dt className="text-muted-foreground">scopes</dt>
-                  <dd className="break-words font-mono text-foreground">{item.scopes}</dd>
+                  <dd className="break-all font-mono">{item.scopes}</dd>
+
                   <dt className="text-muted-foreground">callback URL</dt>
-                  <dd className="break-all font-mono text-foreground">{item.callbackUrl}</dd>
+                  <dd className="break-all font-mono">{item.callbackUrl}</dd>
                 </dl>
               </div>
             ))}
           </div>
         </section>
-
-        <div className="mt-10 rounded-2xl border border-white/5 bg-white/[0.02] p-5 text-xs text-muted-foreground">
-          <strong className="text-foreground">Heads up:</strong> To complete an OAuth handshake you
-          (the app owner) must register your app with each provider's developer portal, add the
-          exact <code className="text-foreground">redirect_uri</code> values shown above to its allowed redirects,
-          and store the client ID + secret in this project's secrets
-          (e.g. <code>META_CLIENT_ID</code>, <code>META_CLIENT_SECRET</code>,{" "}
-          <code>LINKEDIN_CLIENT_ID</code>, etc.). Until those are set, the “Connect” button will
-          surface a clear error from the provider.
-        </div>
       </main>
     </div>
   );
