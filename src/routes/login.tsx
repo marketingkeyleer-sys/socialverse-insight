@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { Brand } from "@/components/brand";
 import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable";
 import { ensureCurrentUserProfile } from "@/lib/profile.functions";
 
 export const Route = createFileRoute("/login")({
