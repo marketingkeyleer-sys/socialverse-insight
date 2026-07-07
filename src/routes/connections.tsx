@@ -64,20 +64,28 @@ function ConnectionsPage() {
   const connect = async (platform: typeof platforms[number]["id"]) => {
     setPendingPlatform(platform);
     setManualAuthUrl(null);
+    // Open a blank tab synchronously inside the click handler so popup blockers
+    // (especially inside the Lovable preview iframe) allow it. We navigate the
+    // tab once the authorize URL is ready.
+    const authWindow = window.open("about:blank", "_blank", "noopener,noreferrer");
     try {
       const res = await start({
         data: { platform, origin: window.location.origin, redirectTo: "/connections" },
       });
-
       console.info("[oauth] starting full-browser authorization", res.debug);
 
-      if (window.self !== window.top) {
-        const opened = window.open(res.authorizeUrl, "_blank");
-        if (!opened) setManualAuthUrl(res.authorizeUrl);
+      if (authWindow && !authWindow.closed) {
+        authWindow.location.href = res.authorizeUrl;
         return;
       }
-      window.location.href = res.authorizeUrl;
+      // Popup blocked — try same-tab redirect, then fall back to a manual link.
+      try {
+        window.top!.location.href = res.authorizeUrl;
+      } catch {
+        setManualAuthUrl(res.authorizeUrl);
+      }
     } catch (e) {
+      authWindow?.close();
       alert(e instanceof Error ? e.message : "Failed to start OAuth flow");
     } finally {
       setPendingPlatform(null);
