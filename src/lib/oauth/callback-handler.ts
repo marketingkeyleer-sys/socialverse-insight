@@ -29,10 +29,10 @@ export async function handleOAuthCallback(request: Request, platform: PlatformId
     .select("*")
     .eq("state", state)
     .maybeSingle();
-  if (stateErr || !row) return redirect(origin, "/connections?error=invalid_state");
-  if (row.platform !== platform) return redirect(origin, "/connections?error=platform_mismatch");
+  if (stateErr || !row) return redirect(origin, `/connections?error=invalid_state&platform=${platform}`);
+  if (row.platform !== platform) return redirect(origin, `/connections?error=platform_mismatch&platform=${platform}`);
   if (new Date(row.expires_at).getTime() < Date.now()) {
-    return redirect(origin, "/connections?error=state_expired");
+    return redirect(origin, `/connections?error=state_expired&platform=${platform}`);
   }
   await supabaseAdmin.from("oauth_states").delete().eq("state", state);
 
