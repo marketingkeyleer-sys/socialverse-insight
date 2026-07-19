@@ -20,9 +20,9 @@ export async function handleOAuthCallback(request: Request, platform: PlatformId
 
   if (errParam) {
     const message = errDescription ? `${errParam}: ${errDescription}` : errParam;
-    return redirect(origin, `/connections?error=${encodeURIComponent(message)}`);
+    return redirect(origin, `/connections?error=${encodeURIComponent(message)}&platform=${platform}`);
   }
-  if (!code || !state) return redirect(origin, "/connections?error=missing_code_or_state");
+  if (!code || !state) return redirect(origin, `/connections?error=missing_code_or_state&platform=${platform}`);
 
   const { data: row, error: stateErr } = await supabaseAdmin
     .from("oauth_states")
