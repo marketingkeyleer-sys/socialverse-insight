@@ -19,6 +19,7 @@ const platforms = [
 const searchSchema = z.object({
   connected: z.string().optional(),
   error: z.string().optional(),
+  platform: z.string().optional(),
 });
 
 export const Route = createFileRoute("/connections")({
@@ -121,7 +122,17 @@ function ConnectionsPage() {
 
         {search.error && (
           <div className="mt-6 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
-            {search.error}
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <span>{search.error}</span>
+              {search.platform && platforms.some((p) => p.id === search.platform) && (
+                <button
+                  onClick={() => connect(search.platform as typeof platforms[number]["id"])}
+                  className="rounded-full bg-red-500/20 px-4 py-2 text-xs font-medium text-red-300 hover:bg-red-500/30"
+                >
+                  Retry {platforms.find((p) => p.id === search.platform)?.name}
+                </button>
+              )}
+            </div>
           </div>
         )}
 

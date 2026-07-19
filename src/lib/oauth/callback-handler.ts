@@ -20,19 +20,19 @@ export async function handleOAuthCallback(request: Request, platform: PlatformId
 
   if (errParam) {
     const message = errDescription ? `${errParam}: ${errDescription}` : errParam;
-    return redirect(origin, `/connections?error=${encodeURIComponent(message)}`);
+    return redirect(origin, `/connections?error=${encodeURIComponent(message)}&platform=${platform}`);
   }
-  if (!code || !state) return redirect(origin, "/connections?error=missing_code_or_state");
+  if (!code || !state) return redirect(origin, `/connections?error=missing_code_or_state&platform=${platform}`);
 
   const { data: row, error: stateErr } = await supabaseAdmin
     .from("oauth_states")
     .select("*")
     .eq("state", state)
     .maybeSingle();
-  if (stateErr || !row) return redirect(origin, "/connections?error=invalid_state");
-  if (row.platform !== platform) return redirect(origin, "/connections?error=platform_mismatch");
+  if (stateErr || !row) return redirect(origin, `/connections?error=invalid_state&platform=${platform}`);
+  if (row.platform !== platform) return redirect(origin, `/connections?error=platform_mismatch&platform=${platform}`);
   if (new Date(row.expires_at).getTime() < Date.now()) {
-    return redirect(origin, "/connections?error=state_expired");
+    return redirect(origin, `/connections?error=state_expired&platform=${platform}`);
   }
   await supabaseAdmin.from("oauth_states").delete().eq("state", state);
 
@@ -65,7 +65,7 @@ export async function handleOAuthCallback(request: Request, platform: PlatformId
   if (!tokenRes.ok || !tokenJson.access_token) {
     console.error(`[oauth] ${platform} token exchange failed`, tokenRes.status, tokenJson);
     const details = tokenJson.error_description || tokenJson.error?.message || tokenJson.error || "token_exchange_failed";
-    return redirect(origin, `/connections?error=${encodeURIComponent(String(details))}`);
+    return redirect(origin, `/connections?error=${encodeURIComponent(String(details))}&platform=${platform}`);
   }
 
   const accessToken: string = tokenJson.access_token;
@@ -103,7 +103,7 @@ export async function handleOAuthCallback(request: Request, platform: PlatformId
   );
   if (upsertErr) {
     console.error(`[oauth] persist failed`, upsertErr);
-    return redirect(origin, "/connections?error=persist_failed");
+    return redirect(origin, `/connections?error=persist_failed&platform=${platform}`);
   }
 
   return redirect(origin, `${row.redirect_to || "/connections"}?connected=${platform}`);
