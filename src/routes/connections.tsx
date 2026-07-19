@@ -63,6 +63,17 @@ function ConnectionsPage() {
   });
 
   const connect = async (platform: typeof platforms[number]["id"]) => {
+    // Detect if we're inside an iframe (Lovable preview). Providers like
+    // Facebook/Google/LinkedIn send X-Frame-Options: DENY and refuse to load
+    // inside a frame — so we must break out to the top window or a new tab.
+    const inIframe = (() => {
+      try { return window.self !== window.top; } catch { return true; }
+    })();
+
+    // Open a blank tab SYNCHRONOUSLY before any await, so popup blockers
+    // treat it as a user-initiated action.
+    const popup = inIframe ? window.open("about:blank", "_blank") : null;
+
     try {
       setPendingPlatform(platform);
 
@@ -78,8 +89,23 @@ function ConnectionsPage() {
         throw new Error("Missing authorize URL");
       }
 
-      window.location.assign(res.authorizeUrl);
+      if (inIframe) {
+        if (popup && !popup.closed) {
+          popup.location.href = res.authorizeUrl;
+        } else {
+          // Popup blocked — try to escape the iframe by navigating top.
+          try {
+            window.top!.location.href = res.authorizeUrl;
+          } catch {
+            window.open(res.authorizeUrl, "_blank", "noopener,noreferrer");
+          }
+        }
+        setPendingPlatform(null);
+      } else {
+        window.location.assign(res.authorizeUrl);
+      }
     } catch (e) {
+      popup?.close();
       alert(e instanceof Error ? e.message : "Failed to start OAuth flow");
       setPendingPlatform(null);
     }
