@@ -103,7 +103,7 @@ export async function handleOAuthCallback(request: Request, platform: PlatformId
   );
   if (upsertErr) {
     console.error(`[oauth] persist failed`, upsertErr);
-    return redirect(origin, "/connections?error=persist_failed");
+    return redirect(origin, `/connections?error=persist_failed&platform=${platform}`);
   }
 
   return redirect(origin, `${row.redirect_to || "/connections"}?connected=${platform}`);
