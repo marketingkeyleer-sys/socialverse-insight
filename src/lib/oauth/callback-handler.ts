@@ -65,7 +65,7 @@ export async function handleOAuthCallback(request: Request, platform: PlatformId
   if (!tokenRes.ok || !tokenJson.access_token) {
     console.error(`[oauth] ${platform} token exchange failed`, tokenRes.status, tokenJson);
     const details = tokenJson.error_description || tokenJson.error?.message || tokenJson.error || "token_exchange_failed";
-    return redirect(origin, `/connections?error=${encodeURIComponent(String(details))}`);
+    return redirect(origin, `/connections?error=${encodeURIComponent(String(details))}&platform=${platform}`);
   }
 
   const accessToken: string = tokenJson.access_token;
