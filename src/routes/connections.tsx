@@ -19,6 +19,7 @@ const platforms = [
 const searchSchema = z.object({
   connected: z.string().optional(),
   error: z.string().optional(),
+  platform: z.string().optional(),
 });
 
 export const Route = createFileRoute("/connections")({
