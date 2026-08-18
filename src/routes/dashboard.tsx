@@ -51,7 +51,23 @@ function Sidebar({ active = "overview" }: { active?: string }) {
     <aside className="hidden w-60 shrink-0 flex-col border-r border-white/5 bg-background/40 backdrop-blur-xl lg:flex">
       <div className="px-6 py-5"><Brand /></div>
       <nav className="flex-1 px-3 py-2 text-sm">
-        <div className="px-3 pb-2 text-[10px] uppercase tracking-widest text-muted-foreground">Workspace</div>
+        <div className="px-3 pb-2 text-[10px] uppercase tracking-widest text-muted-foreground">Publishing</div>
+        <Link
+          to="/composer"
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-muted-foreground transition hover:bg-white/5 hover:text-foreground"
+        >
+          <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40" />
+          <span className="flex-1">Composer</span>
+        </Link>
+        <Link
+          to="/scheduled-posts"
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-muted-foreground transition hover:bg-white/5 hover:text-foreground"
+        >
+          <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40" />
+          <span className="flex-1">Scheduled posts</span>
+        </Link>
+
+        <div className="mt-4 px-3 pb-2 text-[10px] uppercase tracking-widest text-muted-foreground">Workspace</div>
         {platformNav.map((item, index) => {
           const isOverview = item.id === "overview";
           const isActive = active === item.id;

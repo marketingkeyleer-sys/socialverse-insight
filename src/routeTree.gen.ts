@@ -9,15 +9,22 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ScheduledPostsRouteImport } from './routes/scheduled-posts'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ConnectionsRouteImport } from './routes/connections'
+import { Route as ComposerRouteImport } from './routes/composer'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiOauthStartRouteImport } from './routes/api/oauth/start'
 import { Route as ApiOauthPlatformCallbackRouteImport } from './routes/api/oauth/$platform.callback'
 import { Route as ApiPublicOauthPlatformCallbackRouteImport } from './routes/api/public/oauth/$platform.callback'
 
+const ScheduledPostsRoute = ScheduledPostsRouteImport.update({
+  id: '/scheduled-posts',
+  path: '/scheduled-posts',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
@@ -36,6 +43,11 @@ const DashboardRoute = DashboardRouteImport.update({
 const ConnectionsRoute = ConnectionsRouteImport.update({
   id: '/connections',
   path: '/connections',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ComposerRoute = ComposerRouteImport.update({
+  id: '/composer',
+  path: '/composer',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -63,20 +75,24 @@ const ApiPublicOauthPlatformCallbackRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/composer': typeof ComposerRoute
   '/connections': typeof ConnectionsRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/scheduled-posts': typeof ScheduledPostsRoute
   '/api/oauth/start': typeof ApiOauthStartRoute
   '/api/oauth/$platform/callback': typeof ApiOauthPlatformCallbackRoute
   '/api/public/oauth/$platform/callback': typeof ApiPublicOauthPlatformCallbackRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/composer': typeof ComposerRoute
   '/connections': typeof ConnectionsRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/scheduled-posts': typeof ScheduledPostsRoute
   '/api/oauth/start': typeof ApiOauthStartRoute
   '/api/oauth/$platform/callback': typeof ApiOauthPlatformCallbackRoute
   '/api/public/oauth/$platform/callback': typeof ApiPublicOauthPlatformCallbackRoute
@@ -84,10 +100,12 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/composer': typeof ComposerRoute
   '/connections': typeof ConnectionsRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/scheduled-posts': typeof ScheduledPostsRoute
   '/api/oauth/start': typeof ApiOauthStartRoute
   '/api/oauth/$platform/callback': typeof ApiOauthPlatformCallbackRoute
   '/api/public/oauth/$platform/callback': typeof ApiPublicOauthPlatformCallbackRoute
@@ -96,30 +114,36 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/composer'
     | '/connections'
     | '/dashboard'
     | '/login'
     | '/reset-password'
+    | '/scheduled-posts'
     | '/api/oauth/start'
     | '/api/oauth/$platform/callback'
     | '/api/public/oauth/$platform/callback'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/composer'
     | '/connections'
     | '/dashboard'
     | '/login'
     | '/reset-password'
+    | '/scheduled-posts'
     | '/api/oauth/start'
     | '/api/oauth/$platform/callback'
     | '/api/public/oauth/$platform/callback'
   id:
     | '__root__'
     | '/'
+    | '/composer'
     | '/connections'
     | '/dashboard'
     | '/login'
     | '/reset-password'
+    | '/scheduled-posts'
     | '/api/oauth/start'
     | '/api/oauth/$platform/callback'
     | '/api/public/oauth/$platform/callback'
@@ -127,10 +151,12 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ComposerRoute: typeof ComposerRoute
   ConnectionsRoute: typeof ConnectionsRoute
   DashboardRoute: typeof DashboardRoute
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  ScheduledPostsRoute: typeof ScheduledPostsRoute
   ApiOauthStartRoute: typeof ApiOauthStartRoute
   ApiOauthPlatformCallbackRoute: typeof ApiOauthPlatformCallbackRoute
   ApiPublicOauthPlatformCallbackRoute: typeof ApiPublicOauthPlatformCallbackRoute
@@ -138,6 +164,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/scheduled-posts': {
+      id: '/scheduled-posts'
+      path: '/scheduled-posts'
+      fullPath: '/scheduled-posts'
+      preLoaderRoute: typeof ScheduledPostsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reset-password': {
       id: '/reset-password'
       path: '/reset-password'
@@ -164,6 +197,13 @@ declare module '@tanstack/react-router' {
       path: '/connections'
       fullPath: '/connections'
       preLoaderRoute: typeof ConnectionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/composer': {
+      id: '/composer'
+      path: '/composer'
+      fullPath: '/composer'
+      preLoaderRoute: typeof ComposerRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -199,10 +239,12 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ComposerRoute: ComposerRoute,
   ConnectionsRoute: ConnectionsRoute,
   DashboardRoute: DashboardRoute,
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  ScheduledPostsRoute: ScheduledPostsRoute,
   ApiOauthStartRoute: ApiOauthStartRoute,
   ApiOauthPlatformCallbackRoute: ApiOauthPlatformCallbackRoute,
   ApiPublicOauthPlatformCallbackRoute: ApiPublicOauthPlatformCallbackRoute,

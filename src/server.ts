@@ -77,4 +77,12 @@ export default {
       return brandedErrorResponse();
     }
   },
+  async scheduled(_event: unknown, _env: unknown, ctx: { waitUntil: (p: Promise<unknown>) => void }) {
+    const { runDuePosts } = await import("./lib/publish/scheduler.server");
+    ctx.waitUntil(
+      runDuePosts().catch((error) => {
+        console.error("[scheduled] runDuePosts failed:", error);
+      }),
+    );
+  },
 };

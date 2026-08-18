@@ -4,16 +4,17 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { motion } from "motion/react";
 import { z } from "zod";
+import { Instagram, Facebook, Linkedin, Youtube, ChevronDown, CheckCircle2, AlertCircle } from "lucide-react";
 import { Brand } from "@/components/brand";
 import { supabase } from "@/integrations/supabase/client";
 import { listConnectedAccounts, disconnectAccount } from "@/lib/oauth/accounts.functions";
 import { getOAuthDebugDetails, startOAuth } from "@/routes/api/oauth/start";
 
 const platforms = [
-  { id: "instagram", name: "Instagram", color: "var(--pink)" },
-  { id: "facebook", name: "Facebook", color: "var(--violet)" },
-  { id: "linkedin", name: "LinkedIn", color: "var(--cyan)" },
-  { id: "youtube", name: "YouTube", color: "var(--destructive)" },
+  { id: "instagram", name: "Instagram", color: "var(--pink)", icon: Instagram },
+  { id: "facebook", name: "Facebook", color: "var(--violet)", icon: Facebook },
+  { id: "linkedin", name: "LinkedIn", color: "var(--cyan)", icon: Linkedin },
+  { id: "youtube", name: "YouTube", color: "var(--destructive)", icon: Youtube },
 ] as const;
 
 const searchSchema = z.object({
@@ -44,6 +45,8 @@ function ConnectionsPage() {
   const getDebugDetails = useServerFn(getOAuthDebugDetails);
 
   const [pendingPlatform, setPendingPlatform] = useState<string | null>(null);
+  const [connectError, setConnectError] = useState<string | null>(null);
+  const [showSetup, setShowSetup] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ["connections"],
@@ -54,6 +57,10 @@ function ConnectionsPage() {
     queryKey: ["oauth-debug", window.location.origin],
     queryFn: () => getDebugDetails({ data: { origin: window.location.origin } }),
   });
+
+  const debugByPlatform = new Map((oauthDebug?.items ?? []).map((item) => [item.platform, item]));
+  const isConfigured = (platformId: string) => debugByPlatform.get(platformId)?.clientId !== "Not configured";
+  const anyUnconfigured = platforms.some((p) => !isConfigured(p.id));
 
   const disconnectMut = useMutation({
     mutationFn: (id: string) => disconnect({ data: { id } }),
@@ -76,6 +83,7 @@ function ConnectionsPage() {
 
     try {
       setPendingPlatform(platform);
+      setConnectError(null);
 
       const res = await start({
         data: {
@@ -106,7 +114,8 @@ function ConnectionsPage() {
       }
     } catch (e) {
       popup?.close();
-      alert(e instanceof Error ? e.message : "Failed to start OAuth flow");
+      setConnectError(e instanceof Error ? e.message : "Failed to start OAuth flow");
+      setShowSetup(true);
       setPendingPlatform(null);
     }
   };
@@ -135,13 +144,14 @@ function ConnectionsPage() {
           <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Settings</div>
           <h1 className="mt-2 text-3xl font-semibold">Connected accounts</h1>
           <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-            Connect each social account once. Tokens are encrypted at rest and only your
-            account can use them.
+            One click connects each account — sign in, approve access, done. Tokens are
+            encrypted at rest and only your account can use them.
           </p>
         </motion.div>
 
         {search.connected && (
-          <div className="mt-6 rounded-xl border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm text-green-400">
+          <div className="mt-6 flex items-center gap-2 rounded-xl border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm text-green-400">
+            <CheckCircle2 className="h-4 w-4 shrink-0" />
             Connected {search.connected}.
           </div>
         )}
@@ -162,9 +172,33 @@ function ConnectionsPage() {
           </div>
         )}
 
+        {connectError && (
+          <div className="mt-6 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+            <div className="flex items-start gap-2">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <div>
+                <div>{connectError}</div>
+                <div className="mt-1 text-xs text-red-300/80">
+                  This platform's developer credentials aren't set up yet — see "Set up
+                  platform credentials" below.
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {anyUnconfigured && !connectError && (
+          <div className="mt-6 rounded-xl border border-amber/30 bg-amber/10 px-4 py-3 text-sm text-amber">
+            Some platforms need one-time developer setup before you can connect them. Open
+            "Set up platform credentials" below for exact steps.
+          </div>
+        )}
+
         <div className="mt-10 grid gap-3 md:grid-cols-2">
           {platforms.map((p) => {
             const connected = connectedByPlatform.get(p.id);
+            const configured = isConfigured(p.id);
+            const Icon = p.icon;
 
             return (
               <div
@@ -172,15 +206,29 @@ function ConnectionsPage() {
                 className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] p-5"
               >
                 <div className="flex items-center gap-3">
-                  <span className="h-9 w-9 rounded-xl" style={{ background: p.color }} />
+                  <span
+                    className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-white"
+                    style={{ background: p.color }}
+                  >
+                    <Icon className="h-5 w-5" />
+                  </span>
                   <div>
-                    <div className="text-sm font-medium">{p.name}</div>
+                    <div className="flex items-center gap-2 text-sm font-medium">
+                      {p.name}
+                      {!configured && !isLoading && (
+                        <span className="rounded-full bg-amber/10 px-2 py-0.5 text-[10px] font-medium text-amber">
+                          Setup required
+                        </span>
+                      )}
+                    </div>
                     <div className="text-xs text-muted-foreground">
                       {isLoading
                         ? "Loading..."
                         : connected
                         ? `Connected as ${connected.display_name ?? connected.account_handle ?? "your account"}`
-                        : "Not connected"}
+                        : configured
+                        ? "Not connected"
+                        : "Developer credentials not configured yet"}
                     </div>
                   </div>
                 </div>
@@ -194,11 +242,11 @@ function ConnectionsPage() {
                   </button>
                 ) : (
                   <button
-                    onClick={() => connect(p.id)}
+                    onClick={() => (configured ? connect(p.id) : setShowSetup(true))}
                     disabled={pendingPlatform === p.id}
                     className="rounded-full bg-primary px-4 py-2 text-xs font-medium text-white disabled:opacity-60"
                   >
-                    {pendingPlatform === p.id ? "Redirecting..." : "Connect"}
+                    {pendingPlatform === p.id ? "Redirecting..." : configured ? "Connect" : "View setup steps"}
                   </button>
                 )}
               </div>
@@ -207,34 +255,63 @@ function ConnectionsPage() {
         </div>
 
         <section className="mt-10 rounded-2xl border border-white/5 bg-white/[0.02] p-5">
-          <h2 className="text-sm font-semibold text-foreground">OAuth debugging</h2>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Verify these values in each provider developer console.
-          </p>
+          <button
+            onClick={() => setShowSetup((v) => !v)}
+            className="flex w-full items-center justify-between text-left"
+          >
+            <div>
+              <h2 className="text-sm font-semibold text-foreground">Set up platform credentials</h2>
+              <p className="mt-1 text-xs text-muted-foreground">
+                One-time setup per platform, done by the app owner — not something each user repeats.
+              </p>
+            </div>
+            <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${showSetup ? "rotate-180" : ""}`} />
+          </button>
 
-          <div className="mt-5 grid gap-3">
-            {(oauthDebug?.items ?? []).map((item) => (
-              <div key={item.platform} className="rounded-xl border border-white/5 bg-background/40 p-4">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="text-sm font-medium">{item.provider}</div>
-                  <code className="text-[11px] text-muted-foreground">{item.platform}</code>
-                </div>
-                <dl className="mt-3 grid gap-3 text-xs md:grid-cols-[120px_1fr]">
-                  <dt className="text-muted-foreground">client_id</dt>
-                  <dd className="break-all font-mono">{item.clientId}</dd>
-
-                  <dt className="text-muted-foreground">redirect_uri</dt>
-                  <dd className="break-all font-mono">{item.redirectUri}</dd>
-
-                  <dt className="text-muted-foreground">scopes</dt>
-                  <dd className="break-all font-mono">{item.scopes}</dd>
-
-                  <dt className="text-muted-foreground">callback URL</dt>
-                  <dd className="break-all font-mono">{item.callbackUrl}</dd>
-                </dl>
+          {showSetup && (
+            <div className="mt-5 grid gap-3">
+              <div className="rounded-xl border border-white/5 bg-background/40 p-4 text-xs text-muted-foreground">
+                Each platform requires its own developer app before "Connect" will work — this
+                mirrors how Zoho Social, Buffer, or Hootsuite work under the hood; they've simply
+                already done this step for their own app. Register one app per platform below, then
+                set its client ID/secret as environment variables in your deployment (and locally in
+                <code className="mx-1 rounded bg-white/10 px-1 py-0.5">.env</code> for testing).
               </div>
-            ))}
-          </div>
+              {(oauthDebug?.items ?? []).map((item) => (
+                <div key={item.platform} className="rounded-xl border border-white/5 bg-background/40 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="text-sm font-medium">{item.provider}</div>
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                        item.clientId === "Not configured" ? "bg-amber/10 text-amber" : "bg-lime/10 text-lime"
+                      }`}
+                    >
+                      {item.clientId === "Not configured" ? "Not configured" : "Configured"}
+                    </span>
+                  </div>
+                  <dl className="mt-3 grid gap-3 text-xs md:grid-cols-[140px_1fr]">
+                    <dt className="text-muted-foreground">Env vars needed</dt>
+                    <dd className="break-all font-mono">
+                      {item.platform === "youtube"
+                        ? "GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET"
+                        : item.platform === "linkedin"
+                        ? "LINKEDIN_CLIENT_ID, LINKEDIN_CLIENT_SECRET"
+                        : "META_CLIENT_ID, META_CLIENT_SECRET"}
+                    </dd>
+
+                    <dt className="text-muted-foreground">client_id (current)</dt>
+                    <dd className="break-all font-mono">{item.clientId}</dd>
+
+                    <dt className="text-muted-foreground">Redirect URI to whitelist</dt>
+                    <dd className="break-all font-mono">{item.redirectUri}</dd>
+
+                    <dt className="text-muted-foreground">Scopes requested</dt>
+                    <dd className="break-all font-mono">{item.scopes}</dd>
+                  </dl>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
       </main>
     </div>
