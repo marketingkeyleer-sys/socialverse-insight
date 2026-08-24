@@ -83,7 +83,8 @@ export async function getFacebookPage(
   // a documented default, not a silent guess, for users who never pick one.
   const selectedPageId =
     typeof account.meta.selected_page_id === "string" ? account.meta.selected_page_id : undefined;
-  const page = (selectedPageId && eligible.find((p) => p.id === selectedPageId)) ?? eligible[0];
+  const page =
+    (selectedPageId ? eligible.find((p) => p.id === selectedPageId) : undefined) ?? eligible[0];
   if (!page?.id || !page?.access_token) return null;
   return {
     pageId: page.id,
