@@ -128,120 +128,6 @@ export type Database = {
         }
         Relationships: []
       }
-      scheduled_posts: {
-        Row: {
-          content: string
-          created_at: string
-          id: string
-          media_path: string | null
-          media_type: string | null
-          media_url: string | null
-          published_at: string | null
-          scheduled_at: string | null
-          status: Database["public"]["Enums"]["post_status"]
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          content?: string
-          created_at?: string
-          id?: string
-          media_path?: string | null
-          media_type?: string | null
-          media_url?: string | null
-          published_at?: string | null
-          scheduled_at?: string | null
-          status?: Database["public"]["Enums"]["post_status"]
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          content?: string
-          created_at?: string
-          id?: string
-          media_path?: string | null
-          media_type?: string | null
-          media_url?: string | null
-          published_at?: string | null
-          scheduled_at?: string | null
-          status?: Database["public"]["Enums"]["post_status"]
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      post_targets: {
-        Row: {
-          attempts: number
-          connected_account_id: string
-          created_at: string
-          error_message: string | null
-          id: string
-          locked_at: string | null
-          platform: Database["public"]["Enums"]["social_platform"]
-          platform_options: Json
-          post_id: string
-          provider_post_id: string | null
-          provider_post_url: string | null
-          published_at: string | null
-          scheduled_at: string
-          status: Database["public"]["Enums"]["target_status"]
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          attempts?: number
-          connected_account_id: string
-          created_at?: string
-          error_message?: string | null
-          id?: string
-          locked_at?: string | null
-          platform: Database["public"]["Enums"]["social_platform"]
-          platform_options?: Json
-          post_id: string
-          provider_post_id?: string | null
-          provider_post_url?: string | null
-          published_at?: string | null
-          scheduled_at: string
-          status?: Database["public"]["Enums"]["target_status"]
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          attempts?: number
-          connected_account_id?: string
-          created_at?: string
-          error_message?: string | null
-          id?: string
-          locked_at?: string | null
-          platform?: Database["public"]["Enums"]["social_platform"]
-          platform_options?: Json
-          post_id?: string
-          provider_post_id?: string | null
-          provider_post_url?: string | null
-          published_at?: string | null
-          scheduled_at?: string
-          status?: Database["public"]["Enums"]["target_status"]
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "post_targets_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "scheduled_posts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "post_targets_connected_account_id_fkey"
-            columns: ["connected_account_id"]
-            isOneToOne: false
-            referencedRelation: "connected_accounts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
     }
     Views: {
       [_ in never]: never
@@ -257,20 +143,6 @@ export type Database = {
         | "youtube"
         | "tiktok"
         | "x"
-      post_status:
-        | "draft"
-        | "scheduled"
-        | "publishing"
-        | "published"
-        | "partial"
-        | "failed"
-        | "canceled"
-      target_status:
-        | "pending"
-        | "publishing"
-        | "published"
-        | "failed"
-        | "canceled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -405,22 +277,6 @@ export const Constants = {
         "youtube",
         "tiktok",
         "x",
-      ],
-      post_status: [
-        "draft",
-        "scheduled",
-        "publishing",
-        "published",
-        "partial",
-        "failed",
-        "canceled",
-      ],
-      target_status: [
-        "pending",
-        "publishing",
-        "published",
-        "failed",
-        "canceled",
       ],
     },
   },
