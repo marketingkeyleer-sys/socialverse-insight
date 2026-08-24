@@ -97,7 +97,9 @@ function ConnectionsPage() {
     queryFn: () => getDebugDetails({ data: { origin: window.location.origin } }),
   });
 
-  const debugByPlatform = new Map((oauthDebug?.items ?? []).map((item) => [item.platform, item]));
+  const debugByPlatform = new Map<string, { platform: string; clientId: string }>(
+    (oauthDebug?.items ?? []).map((item) => [item.platform as string, item]),
+  );
   const isConfigured = (platformId: string) => debugByPlatform.get(platformId)?.clientId !== "Not configured";
   const anyUnconfigured = platforms.some((p) => !isConfigured(p.id));
 
