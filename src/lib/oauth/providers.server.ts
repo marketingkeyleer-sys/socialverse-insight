@@ -160,6 +160,13 @@ export function getProviderCreds(p: ProviderConfig) {
   return { clientId, clientSecret };
 }
 
+/**
+ * Every provider redirect URI is built from ONE canonical origin so the value
+ * always matches what is registered in the developer consoles. Set
+ * OAUTH_PUBLIC_ORIGIN (e.g. https://socialverse-insight.lovable.app); the
+ * request origin is only a fallback for local dev.
+ */
 export function callbackUrl(origin: string, platform: PlatformId) {
-  return `${origin.replace(/\/$/, "")}/api/public/oauth/${platform}/callback`;
+  const base = process.env.OAUTH_PUBLIC_ORIGIN || origin;
+  return `${base.replace(/\/$/, "")}/api/public/oauth/${platform}/callback`;
 }
