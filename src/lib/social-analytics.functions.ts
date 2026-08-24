@@ -421,11 +421,12 @@ async function fetchPlatformAnalytics(account: ConnectedAccountRow): Promise<Pla
 export const getSocialDashboard = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data, error } = await supabaseAdmin
+    // RLS-scoped client, not supabaseAdmin: this only ever needs the caller's
+    // own rows, and RLS enforces that automatically instead of relying on a
+    // hand-written user_id filter as the only protection.
+    const { data, error } = await context.supabase
       .from("connected_accounts")
       .select("*")
-      .eq("user_id", context.userId)
       .in("platform", DASHBOARD_PLATFORMS);
     if (error) throw new Error(error.message);
 

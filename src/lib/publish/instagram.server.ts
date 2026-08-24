@@ -15,16 +15,16 @@ async function waitForContainer(
   igUserId: string,
   creationId: string,
   token: string,
-): Promise<void> {
+): Promise<"finished" | "timeout"> {
   for (const delay of POLL_DELAYS_MS) {
     const json = await graphFetch(
       `https://graph.facebook.com/${GRAPH_VERSION}/${creationId}?fields=status_code&access_token=${token}`,
     );
-    if (json.status_code === "FINISHED") return;
+    if (json.status_code === "FINISHED") return "finished";
     if (json.status_code === "ERROR") throw new Error("Instagram media processing failed.");
     await new Promise((resolve) => setTimeout(resolve, delay));
   }
-  throw new Error("Instagram media processing timed out.");
+  return "timeout";
 }
 
 export async function publishInstagram(
@@ -62,16 +62,26 @@ export async function publishInstagram(
     const creationId = container.id;
     if (!creationId) return { error: "Instagram did not return a media container id." };
 
-    await waitForContainer(igUserId, creationId, token);
+    const containerStatus = await waitForContainer(igUserId, creationId, token);
 
-    const published = await graphFetch(
-      `https://graph.facebook.com/${GRAPH_VERSION}/${igUserId}/media_publish`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ creation_id: creationId, access_token: token }),
-      },
-    );
+    // Even after a poll timeout, still attempt the publish once instead of
+    // giving up immediately — Meta rejects cleanly if the container genuinely
+    // isn't ready, but if processing finished just after our poll budget this
+    // still succeeds instead of abandoning an otherwise-orphaned container.
+    let published: { id: string };
+    try {
+      published = await graphFetch(
+        `https://graph.facebook.com/${GRAPH_VERSION}/${igUserId}/media_publish`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ creation_id: creationId, access_token: token }),
+        },
+      );
+    } catch (publishError) {
+      if (containerStatus === "timeout") throw new Error("Instagram media processing timed out.");
+      throw publishError;
+    }
 
     let providerPostUrl: string | undefined;
     try {

@@ -78,14 +78,18 @@ function ComposerPage() {
           throw new Error(`${platform} is not connected. Connect it first.`);
         }
       }
-      if (selected.has("instagram") && !media) {
-        throw new Error("Instagram requires an image — text-only posts aren't supported.");
+      if (selected.has("instagram") && media?.type !== "image") {
+        throw new Error("Instagram requires an image — video and text-only posts aren't supported yet.");
       }
       if (selected.has("youtube") && (!media || media.type !== "video")) {
         throw new Error("YouTube requires a video file.");
       }
       if (selected.has("youtube") && !youtubeTitle.trim()) {
         throw new Error("YouTube requires a title.");
+      }
+      const noVideoPlatforms = (["facebook", "linkedin"] as const).filter((p) => selected.has(p));
+      if (media?.type === "video" && noVideoPlatforms.length > 0) {
+        throw new Error(`${noVideoPlatforms.join(", ")} doesn't support video posts yet — deselect it or remove the video.`);
       }
       const contentRequired = !(selected.size === 1 && selected.has("youtube"));
       if (contentRequired && !content.trim()) {

@@ -24,17 +24,21 @@ export async function handleOAuthCallback(request: Request, platform: PlatformId
   }
   if (!code || !state) return redirect(origin, `/connections?error=missing_code_or_state&platform=${platform}`);
 
+  // Atomic delete-and-return: a single DELETE...RETURNING means two
+  // near-simultaneous requests carrying the same state (a replayed callback,
+  // a double-click) can never both consume it — the second one gets no row
+  // back, unlike a separate SELECT-then-DELETE which both could pass.
   const { data: row, error: stateErr } = await supabaseAdmin
     .from("oauth_states")
-    .select("*")
+    .delete()
     .eq("state", state)
+    .select("*")
     .maybeSingle();
   if (stateErr || !row) return redirect(origin, `/connections?error=invalid_state&platform=${platform}`);
   if (row.platform !== platform) return redirect(origin, `/connections?error=platform_mismatch&platform=${platform}`);
   if (new Date(row.expires_at).getTime() < Date.now()) {
     return redirect(origin, `/connections?error=state_expired&platform=${platform}`);
   }
-  await supabaseAdmin.from("oauth_states").delete().eq("state", state);
 
   const provider = getProvider(platform);
   const { clientId, clientSecret } = getProviderCreds(provider);
@@ -73,11 +77,17 @@ export async function handleOAuthCallback(request: Request, platform: PlatformId
   const expiresIn: number | undefined = tokenJson.expires_in;
   const scopes: string[] = (tokenJson.scope || provider.scopes || "").split(/[\s,]+/).filter(Boolean);
 
-  let profile: { id: string; handle?: string; name?: string; avatar?: string } = { id: "me" };
+  // No placeholder-id fallback here: connected_accounts is upserted keyed on
+  // (user_id, platform, provider_account_id), so a fake shared id like "me"
+  // would let a failed lookup collide with — or later strand — a different
+  // real account under the same row. Fail the connection instead and let the
+  // user retry, same as every other failure mode in this function.
+  let profile: { id: string; handle?: string; name?: string; avatar?: string };
   try {
-    if (provider.userInfo) profile = await provider.userInfo(accessToken);
+    profile = provider.userInfo ? await provider.userInfo(accessToken) : { id: crypto.randomUUID() };
   } catch (e) {
-    console.warn(`[oauth] ${platform} userinfo failed`, e);
+    console.error(`[oauth] ${platform} userinfo failed`, e);
+    return redirect(origin, `/connections?error=profile_lookup_failed&platform=${platform}`);
   }
 
   const access = await encryptToken(accessToken);

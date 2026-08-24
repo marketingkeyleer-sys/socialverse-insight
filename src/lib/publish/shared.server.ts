@@ -75,7 +75,15 @@ export async function getFacebookPage(
     access_token?: string;
     instagram_business_account?: { id?: string };
   }>;
-  const page = opts.withInstagram ? pages.find((p) => p.instagram_business_account) : pages[0];
+  const eligible = opts.withInstagram ? pages.filter((p) => p.instagram_business_account) : pages;
+  if (!eligible.length) return null;
+
+  // Respect a page the user explicitly picked (see facebook-pages.functions.ts);
+  // otherwise fall back to the first eligible page rather than leaving it unset —
+  // a documented default, not a silent guess, for users who never pick one.
+  const selectedPageId =
+    typeof account.meta.selected_page_id === "string" ? account.meta.selected_page_id : undefined;
+  const page = (selectedPageId && eligible.find((p) => p.id === selectedPageId)) ?? eligible[0];
   if (!page?.id || !page?.access_token) return null;
   return {
     pageId: page.id,

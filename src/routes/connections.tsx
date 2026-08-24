@@ -9,6 +9,7 @@ import { Brand } from "@/components/brand";
 import { supabase } from "@/integrations/supabase/client";
 import { listConnectedAccounts, disconnectAccount } from "@/lib/oauth/accounts.functions";
 import { getOAuthDebugDetails, startOAuth } from "@/routes/api/oauth/start";
+import { listFacebookPages, selectFacebookPage } from "@/lib/facebook-pages.functions";
 
 const platforms = [
   { id: "instagram", name: "Instagram", color: "var(--pink)", icon: Instagram },
@@ -33,6 +34,44 @@ export const Route = createFileRoute("/connections")({
   component: ConnectionsPage,
   head: () => ({ meta: [{ title: "Connections · SocialVerse Analytics" }] }),
 });
+
+function FacebookPagePicker() {
+  const qc = useQueryClient();
+  const list = useServerFn(listFacebookPages);
+  const select = useServerFn(selectFacebookPage);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["facebook-pages"],
+    queryFn: () => list(),
+  });
+
+  const selectMut = useMutation({
+    mutationFn: (pageId: string) => select({ data: { pageId } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["facebook-pages"] }),
+  });
+
+  if (isLoading) return null;
+  const pages = data?.pages ?? [];
+  if (pages.length <= 1) return null;
+
+  return (
+    <div className="mt-3 flex items-center gap-2 border-t border-white/5 pt-3 text-xs">
+      <span className="text-muted-foreground">Posting to Page</span>
+      <select
+        value={data?.selectedPageId ?? pages[0]?.id}
+        onChange={(e) => selectMut.mutate(e.target.value)}
+        disabled={selectMut.isPending}
+        className="rounded-md border border-input bg-transparent px-2 py-1 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+      >
+        {pages.map((page) => (
+          <option key={page.id} value={page.id} className="bg-background">
+            {page.name}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
 
 function ConnectionsPage() {
   const search = useSearch({ from: "/connections" });
@@ -203,8 +242,9 @@ function ConnectionsPage() {
             return (
               <div
                 key={p.id}
-                className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] p-5"
+                className="rounded-2xl border border-white/10 bg-white/[0.03] p-5"
               >
+                <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <span
                     className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-white"
@@ -249,6 +289,8 @@ function ConnectionsPage() {
                     {pendingPlatform === p.id ? "Redirecting..." : configured ? "Connect" : "View setup steps"}
                   </button>
                 )}
+                </div>
+                {p.id === "facebook" && connected && <FacebookPagePicker />}
               </div>
             );
           })}

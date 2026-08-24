@@ -21,20 +21,35 @@ export async function runDuePosts(): Promise<void> {
   const nowIso = now.toISOString();
   const staleThreshold = new Date(now.getTime() - STALE_LOCK_MINUTES * 60_000).toISOString();
 
-  // Reclaim targets abandoned mid-flight by a killed Worker invocation.
+  // Reclaim targets abandoned mid-flight by a killed Worker invocation. We can't
+  // safely know whether the provider actually accepted the post before the
+  // Worker died, so this does NOT silently reset to 'pending' for automatic
+  // retry — that would risk a duplicate publish. Instead it's marked 'failed'
+  // with a message asking for manual verification before any retry.
   await supabaseAdmin
     .from("post_targets")
-    .update({ status: "pending", locked_at: null })
+    .update({
+      status: "failed",
+      error_message:
+        "Publish attempt was interrupted and could not be safely retried automatically — check the platform before retrying.",
+      locked_at: null,
+    })
     .eq("status", "publishing")
     .lt("locked_at", staleThreshold);
 
   // Atomic claim: a single UPDATE...WHERE means two overlapping cron ticks
   // can never both claim the same row, so no separate lock table is needed.
+  // YouTube targets are claimed as soon as they're pending, regardless of
+  // scheduled_at — the upload itself starts immediately, but when scheduled_at
+  // is still in the future, publishYouTube uploads it privately with YouTube's
+  // own publishAt so release timing stays precise instead of being coupled to
+  // cron granularity + upload duration. Every other platform still waits for
+  // its scheduled_at to elapse before being claimed at all.
   const { data: claimed, error: claimError } = await supabaseAdmin
     .from("post_targets")
     .update({ status: "publishing", locked_at: nowIso })
     .eq("status", "pending")
-    .lte("scheduled_at", nowIso)
+    .or(`scheduled_at.lte.${nowIso},platform.eq.youtube`)
     .is("locked_at", null)
     .select("*, connected_accounts(*), scheduled_posts(*)")
     .limit(CLAIM_BATCH_SIZE);
@@ -113,9 +128,13 @@ export async function runDuePosts(): Promise<void> {
           ? "partial"
           : "canceled";
 
+    // Never overwrite a post the user canceled in the meantime — a target
+    // claimed just before cancellation can still complete after the user
+    // canceled its parent, and the rollup shouldn't silently undo that.
     await supabaseAdmin
       .from("scheduled_posts")
       .update({ status: rollup, published_at: new Date().toISOString() })
-      .eq("id", postId);
+      .eq("id", postId)
+      .neq("status", "canceled");
   }
 }
