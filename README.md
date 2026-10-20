@@ -1,5 +1,8 @@
 # SocialVerse
 
+> Latest live backend/database status: [docs/LIVE_DEPLOYMENT_STATUS.md](docs/LIVE_DEPLOYMENT_STATUS.md).
+> Additive database setup and backend deployment are complete; frontend hosting is pending.
+
 > The current audit, configuration, migration, test results, and remaining
 > production blockers are documented in [docs/AUDIT_AND_DEPLOYMENT.md](docs/AUDIT_AND_DEPLOYMENT.md).
 > That document supersedes the older OAuth and deployment notes below.
