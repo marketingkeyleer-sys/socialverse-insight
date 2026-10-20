@@ -1,23 +1,24 @@
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getPlatformColor, getPlatformLabel } from "@/lib/platforms";
-import type { Platform, Post } from "@/types/database";
+import type { Platform, PlatformPost } from "@/types/database";
+import { dateKey } from "@/lib/analyticsReport";
 
 function weekLabel(date: Date): string {
   const start = new Date(date);
-  start.setDate(start.getDate() - start.getDay());
-  return start.toISOString().slice(0, 10);
+  start.setDate(start.getDate() - (start.getDay() + 6) % 7);
+  return dateKey(start);
 }
 
-export function PostsBarChart({ posts }: { posts: Post[] }) {
+export function PostsBarChart({ posts }: { posts: PlatformPost[] }) {
   const platforms = new Set<Platform>();
   const byWeek = new Map<string, Record<string, number | string>>();
 
   for (const post of posts) {
-    const anchor = post.published_at ?? post.created_at;
+    const anchor = post.posted_at;
     const week = weekLabel(new Date(anchor));
     const row = byWeek.get(week) ?? { week };
-    for (const p of post.platforms as Platform[]) {
+    for (const p of [post.platform]) {
       platforms.add(p);
       row[p] = (Number(row[p]) || 0) + 1;
     }

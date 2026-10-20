@@ -71,6 +71,7 @@ export function PlatformPostsTable({ posts }: { posts: AllPlatformPost[] }) {
   const [sortKey, setSortKey] = useState<SortKey>("date");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [platformFilter, setPlatformFilter] = useState<Platform | null>(null);
+  const [page, setPage] = useState(0);
 
   const availablePlatforms = useMemo(
     () => [...new Set(posts.map((p) => p.platform as Platform))],
@@ -78,6 +79,7 @@ export function PlatformPostsTable({ posts }: { posts: AllPlatformPost[] }) {
   );
 
   const toggleSort = (key: SortKey) => {
+    setPage(0);
     if (key === sortKey) {
       setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     } else {
@@ -102,16 +104,18 @@ export function PlatformPostsTable({ posts }: { posts: AllPlatformPost[] }) {
       }
     });
   }, [posts, platformFilter, sortKey, sortDir]);
+  const currentPage = Math.min(page, Math.max(0, Math.ceil(sorted.length / 20) - 1));
+  const visible = sorted.slice(currentPage * 20, (currentPage + 1) * 20);
 
   return (
     <Card>
       <CardHeader>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <CardTitle className="text-base">All posts</CardTitle>
+          <CardTitle className="text-base">Content performance · {sorted.length} posts</CardTitle>
           {availablePlatforms.length > 1 && (
             <div className="flex flex-wrap gap-1">
               <button
-                onClick={() => setPlatformFilter(null)}
+                onClick={() => {setPlatformFilter(null); setPage(0);}}
                 className={cn(
                   "rounded-full border px-2.5 py-1 text-xs font-medium transition-colors",
                   !platformFilter ? "border-primary bg-primary text-primary-foreground" : "hover:bg-accent",
@@ -124,7 +128,7 @@ export function PlatformPostsTable({ posts }: { posts: AllPlatformPost[] }) {
                 return (
                   <button
                     key={p}
-                    onClick={() => setPlatformFilter(p)}
+                    onClick={() => {setPlatformFilter(p); setPage(0);}}
                     className={cn(
                       "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors",
                       platformFilter === p ? "border-primary bg-primary text-primary-foreground" : "hover:bg-accent",
@@ -138,18 +142,15 @@ export function PlatformPostsTable({ posts }: { posts: AllPlatformPost[] }) {
           )}
         </div>
         <p className="text-xs text-muted-foreground">
-          Every real post on your connected accounts — from your last sync. Click a column header to sort by
-          date or platform. Views are YouTube's reach equivalent; follower growth is a page-wide trend, shown
-          above instead. Facebook doesn't currently expose per-post reach/impressions or likes/comments to
-          apps like this one — see <a href="/settings" className="underline">Settings → Activity</a> for why.
-          Instagram reach/impressions need a permission (instagram_manage_insights) this account hasn't
-          granted yet.
+          Synced posts published within the selected report period. Sort to explore your content.
+          Metrics are the latest synced lifetime totals for each post. Views and reach are different metrics;
+          a dash means unavailable. Provider permissions and sync coverage affect what is reported.
         </p>
       </CardHeader>
       <CardContent>
         {posts.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">
-            No posts synced yet — click "Sync now" on a connected account to pull them in.
+            No synced posts in this period. Try another date range or sync your connected accounts.
           </p>
         ) : sorted.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">No posts for this platform yet.</p>
@@ -173,7 +174,7 @@ export function PlatformPostsTable({ posts }: { posts: AllPlatformPost[] }) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sorted.map((post) => {
+                {visible.map((post) => {
                   const Icon = getPlatformIcon(post.platform as Platform);
                   const typeMeta = post.media_type ? TYPE_META[post.media_type] : undefined;
                   return (
@@ -236,6 +237,7 @@ export function PlatformPostsTable({ posts }: { posts: AllPlatformPost[] }) {
             </Table>
           </div>
         )}
+        {sorted.length > 20 && <div className="mt-4 flex items-center justify-between border-t pt-4 text-xs text-muted-foreground"><span>{currentPage * 20 + 1}–{Math.min((currentPage + 1) * 20, sorted.length)} of {sorted.length}</span><div className="flex gap-3"><button className="rounded border px-3 py-2 disabled:opacity-40" disabled={currentPage === 0} onClick={() => setPage(currentPage - 1)}>Previous</button><button className="rounded border px-3 py-2 disabled:opacity-40" disabled={(currentPage + 1) * 20 >= sorted.length} onClick={() => setPage(currentPage + 1)}>Next</button></div></div>}
       </CardContent>
     </Card>
   );
