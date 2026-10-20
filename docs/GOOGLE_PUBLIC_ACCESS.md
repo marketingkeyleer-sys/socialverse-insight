@@ -17,6 +17,13 @@ Audience is already External. Public access is not yet verified.
 - Started Google's automated branding verification. Google approval and
   sensitive-scope verification are separate from production publication.
 
+Google's automated check reported that the homepage is not registered to the
+operator. It requests verified homepage ownership and a 24-hour propagation
+wait before retrying. The Verification centre currently disables sensitive
+data verification until branding is verified. A URL-prefix Search Console
+property for the exact live homepage has been prepared for ownership proof;
+the verification tag must remain installed after success.
+
 Publish the application update before saving these consent-screen links:
 
 - Homepage: https://socialverse-insight.lovable.app/
