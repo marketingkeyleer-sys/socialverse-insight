@@ -7,6 +7,7 @@
     "test": "node --loader ./tests/ts-loader.mjs --test tests/*.test.mjs",
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:dev": "vite build --mode development",
     "lint": "oxlint",
     "preview": "vite preview",
     "setup:bridge": "node scripts/setup-bridge.cjs",
