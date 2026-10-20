@@ -24,6 +24,15 @@ data verification until branding is verified. A URL-prefix Search Console
 property for the exact live homepage has been prepared for ownership proof;
 the verification tag must remain installed after success.
 
+The user explicitly approved publishing the ownership meta tag and verifying
+`marketingkeyleer@gmail.com` as the URL-prefix property's owner. Commit
+`d8f5a32` was published through Lovable; the tag was read back from the live
+page. Search Console then visibly confirmed **Ownership verified**, using the
+HTML tag method. Keep the tag in `index.html`. Do not claim branding or scope
+approval: Google's requested 24-hour wait and the subsequent branding and
+sensitive-scope reviews remain outstanding. No real user's YouTube consent or
+upload was performed during this configuration work.
+
 Publish the application update before saving these consent-screen links:
 
 - Homepage: https://socialverse-insight.lovable.app/
