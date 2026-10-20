@@ -44,7 +44,7 @@ export function PostPreview({ platforms, content, mediaUrls, platformContent, ac
                 <p className="text-xs text-muted-foreground">Just now</p>
               </div>
             </div>
-            <p className="mt-3 whitespace-pre-wrap text-sm">{content || "Your post content will appear here…"}</p>
+            <p className="mt-3 whitespace-pre-wrap text-sm">{draft.content || "Your platform-specific content will appear here…"}</p>
             {draft.media_urls.length > 0 && (
               <div className="mt-3 grid grid-cols-2 gap-1.5 overflow-hidden rounded-lg">
                 {draft.media_urls.slice(0, 4).map((url) =>

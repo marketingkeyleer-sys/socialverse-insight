@@ -158,7 +158,6 @@ export default function Dashboard() {
             label="Total reach"
             value={formatNumber(aggregates.totalReach)}
             icon={Eye}
-            changePct={aggregates.impressionsChangePct}
             color="var(--chart-4)"
           />
           <StatCard label="Total likes" value={formatNumber(totalLikes)} icon={Heart} color="var(--chart-5)" />

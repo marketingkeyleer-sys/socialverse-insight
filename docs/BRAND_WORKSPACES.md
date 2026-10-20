@@ -72,6 +72,17 @@ Placeholder testimonials and an unsupported team feature claim were removed.
   now query public Auth settings and show that button only when it is enabled.
   Email authentication remains available. This does not disable or change
   the separate YouTube channel OAuth flow.
+- After the user supplied login details directly, the live authenticated
+  dashboard was checked read-only. Robotverse displayed its three channels
+  (85 Facebook followers, 98 Instagram followers, 94 YouTube subscribers),
+  totalling 277. Keyleerkart showed its own 370 / 90 / 35 counts, totalling
+  495. The portfolio displayed these as separate companies and correctly
+  showed Mani and Unassigned with no connected channels.
+- Composer account choices stayed within Robotverse. Browser checks also
+  caught and corrected a remaining preview binding to the shared draft; the
+  final preview uses each platform's resolved content. No draft was saved and
+  no post was published during the UI check. An unrelated impressions-change
+  badge was removed from the Reach card to avoid mislabelling that metric.
 - A separate attempt to create a production QA login was rejected by automatic
   approval review. It was not retried or bypassed; no persistent QA login was
   created. Browser verification uses public pages and existing-account reads.
