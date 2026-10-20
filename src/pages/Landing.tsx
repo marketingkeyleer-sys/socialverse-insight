@@ -203,6 +203,8 @@ export default function Landing() {
             <a href="#features" className="hover:text-foreground">Features</a>
             <a href="#pricing" className="hover:text-foreground">Pricing</a>
             <Link to="/login" className="hover:text-foreground">Sign in</Link>
+            <Link to="/privacy" className="hover:text-foreground">Privacy</Link>
+            <Link to="/terms" className="hover:text-foreground">Terms</Link>
           </div>
           <span>© {new Date().getFullYear()} {APP_NAME}. All rights reserved.</span>
         </div>

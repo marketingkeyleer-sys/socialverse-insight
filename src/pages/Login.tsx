@@ -82,6 +82,7 @@ export default function Login() {
               Sign up
             </Link>
           </p>
+          <p className="text-center text-xs text-muted-foreground"><Link to="/privacy" className="underline">Privacy policy</Link> · <Link to="/terms" className="underline">Terms of service</Link></p>
         </CardContent>
       </Card>
     </div>

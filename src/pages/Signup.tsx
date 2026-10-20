@@ -135,6 +135,7 @@ export default function Signup() {
               Sign in
             </Link>
           </p>
+          <p className="text-center text-xs text-muted-foreground">Review our <Link to="/privacy" className="underline">Privacy policy</Link> and <Link to="/terms" className="underline">Terms of service</Link> before creating an account.</p>
         </CardContent>
       </Card>
     </div>

@@ -26,6 +26,7 @@ import Ads from "@/pages/Ads";
 import Analytics from "@/pages/Analytics";
 import Settings from "@/pages/Settings";
 import NotFound from "@/pages/NotFound";
+import Legal from "@/pages/Legal";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -70,6 +71,8 @@ export default function App() {
                 <Route path="/" element={<HomeRoute />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<Signup />} />
+                <Route path="/privacy" element={<Legal page="privacy" />} />
+                <Route path="/terms" element={<Legal page="terms" />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
 

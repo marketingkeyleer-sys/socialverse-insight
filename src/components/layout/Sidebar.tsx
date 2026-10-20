@@ -79,6 +79,7 @@ export function Sidebar() {
       </nav>
 
       <div className="border-t p-3">
+        {!collapsed && <div className="mb-2 flex gap-4 px-2 text-xs text-muted-foreground"><NavLink to="/privacy" className="hover:underline">Privacy</NavLink><NavLink to="/terms" className="hover:underline">Terms</NavLink></div>}
         <div className={cn("flex items-center gap-2 rounded-lg p-2", collapsed && "justify-center")}>
           <Avatar className="h-8 w-8 shrink-0">
             <AvatarImage src={profile?.avatar_url ?? undefined} alt={profile?.full_name ?? "You"} />
