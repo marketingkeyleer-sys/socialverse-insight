@@ -3,6 +3,8 @@ import { PlatformCard } from "@/components/accounts/PlatformCard";
 import { useConnectedAccounts } from "@/hooks/useConnectedAccounts";
 import { PLATFORM_CONFIGS } from "@/lib/platforms";
 import type { Platform } from "@/types/database";
+import { useState } from "react";
+import { MetaConnectDialog, type MetaPlatform } from "@/components/accounts/MetaConnectDialog";
 
 // LinkedIn Page is a specialized business feature — it needs a registered
 // company and LinkedIn's Community Management API approval, which almost
@@ -14,6 +16,7 @@ const ONBOARDING_PLATFORMS = PLATFORM_CONFIGS.filter((c) => c.id !== "linkedin_p
 export function ConnectStep({ onNext, onBack }: { onNext: () => void; onBack: () => void }) {
   const { data: accounts = [], connect } = useConnectedAccounts();
   const connectedPlatforms = new Set(accounts.map((a) => a.platform));
+  const [metaPlatform, setMetaPlatform] = useState<MetaPlatform | null>(null);
 
   return (
     <div className="space-y-6 text-center">
@@ -36,12 +39,21 @@ export function ConnectStep({ onNext, onBack }: { onNext: () => void; onBack: ()
             <PlatformCard
               key={config.id}
               config={config}
-              onConnect={() => connect.mutate({ platform: config.id as Platform })}
+              onConnect={() => {
+                if (config.id === "facebook" || config.id === "instagram") {
+                  connect.reset();
+                  setMetaPlatform(config.id);
+                } else connect.mutate({ platform: config.id as Platform });
+              }}
               connecting={connect.isPending && connect.variables?.platform === config.id}
             />
           ),
         )}
       </div>
+
+      {metaPlatform && <MetaConnectDialog key={metaPlatform} platform={metaPlatform} brandName="Unassigned accounts"
+        pending={connect.isPending} error={connect.error?.message}
+        onClose={() => setMetaPlatform(null)} onContinue={() => connect.mutate({platform: metaPlatform})} />}
 
       <div className="flex justify-center gap-2">
         <Button variant="ghost" onClick={onBack}>

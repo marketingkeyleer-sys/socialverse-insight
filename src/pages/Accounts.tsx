@@ -14,6 +14,7 @@ import { AccountRow } from "@/components/accounts/AccountRow";
 import { SetupChecklist } from "@/components/accounts/SetupChecklist";
 import { WhatsAppConnectDialog } from "@/components/accounts/WhatsAppConnectDialog";
 import { OAuthAccountPicker } from "@/components/accounts/OAuthAccountPicker";
+import { MetaConnectDialog, type MetaPlatform } from "@/components/accounts/MetaConnectDialog";
 import { useAuth } from "@/hooks/useAuth";
 import { useBrands } from "@/hooks/useBrands";
 import { availability, useConnectionStatus } from "@/hooks/useConnectionStatus";
@@ -110,7 +111,7 @@ function BrandCard({
                 onClick={() =>
                   config.id === "whatsapp"
                     ? onConnectWhatsApp(brand.id)
-                    : connect.mutate({ platform: config.id as Platform, brandId: brand.id })
+                    : reconnect(config.id as Platform, brand.id)
                 }
               >
                 {connecting ? "Opening…" : unavailable && config.id !== "whatsapp" ? "Unavailable" : "Connect"}
@@ -137,6 +138,7 @@ export default function Accounts() {
   const [newBrandOpen, setNewBrandOpen] = useState(false);
   const [newBrandName, setNewBrandName] = useState("");
   const [whatsAppDialog, setWhatsAppDialog] = useState<{ brandId: string | null } | null>(null);
+  const [metaDialog, setMetaDialog] = useState<{platform: MetaPlatform; brandId: string | null} | null>(null);
 
   // The oauth-callback Edge Function redirects here with ?connected=<platform>
   // or ?connect_error=<message>&platform=<platform> once the provider round-trip
@@ -171,6 +173,11 @@ export default function Accounts() {
   // same brand). WhatsApp has no login to repeat, so it goes to its page.
   function reconnect(platform: Platform, brandId: string | null) {
     if (platform === "whatsapp") return;
+    if (platform === "facebook" || platform === "instagram") {
+      actions.connect.reset();
+      setMetaDialog({platform, brandId});
+      return;
+    }
     actions.connect.mutate({ platform, brandId });
   }
 
@@ -216,8 +223,16 @@ export default function Accounts() {
       <div className="flex flex-wrap gap-2">
         {PLATFORM_CONFIGS.filter((p) => p.id !== "whatsapp").map((p) => <Button key={p.id} variant="outline" size="sm"
           disabled={atLimit || actions.connect.isPending}
-          onClick={() => actions.connect.mutate({ platform: p.id as Platform, brandId: scope.brandId === ALL_BRANDS || scope.brandId === UNGROUPED ? null : scope.brandId })}><p.icon className="h-4 w-4" style={{ color: p.color }} />Add {p.label}</Button>)}
+          onClick={() => reconnect(p.id as Platform, scope.brandId === ALL_BRANDS || scope.brandId === UNGROUPED ? null : scope.brandId)}><p.icon className="h-4 w-4" style={{ color: p.color }} />Add {p.id === "facebook" ? "Facebook Page" : p.label}</Button>)}
       </div>
+      <div className="rounded-xl border bg-card p-4 text-xs leading-relaxed text-muted-foreground">
+        <p className="mb-1 font-semibold text-foreground">Connect the accounts you manage</p>
+        <p><strong>Facebook:</strong> sign in with your normal Facebook account to connect a Page. <strong>Instagram:</strong> connect a Business or Creator account linked to a Facebook Page. Personal accounts get setup instructions before login.</p>
+      </div>
+      {metaDialog && <MetaConnectDialog key={`${metaDialog.platform}:${metaDialog.brandId}`} platform={metaDialog.platform}
+        brandName={brands.find(brand => brand.id === metaDialog.brandId)?.name ?? "Unassigned accounts"}
+        pending={actions.connect.isPending} error={actions.connect.error?.message}
+        onClose={() => setMetaDialog(null)} onContinue={() => actions.connect.mutate(metaDialog)} />}
 
       {!isLoading && !brandsLoading && (
         <SetupChecklist brands={brands} accounts={accounts} onCreateBrand={() => setNewBrandOpen(true)} />
