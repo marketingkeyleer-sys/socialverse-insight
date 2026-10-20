@@ -1,5 +1,39 @@
 # Live backend status — 20 October 2026
 
+## Brand/account save investigation
+
+A supplied Lovable editor screenshot reported `Could not find the table
+'public.sv_brands' in the schema cache`. The existing application project
+contains that table, and a direct PostgREST probe of `sv_brands` with the app's
+public client key returned HTTP 200. Account/profile/inbox table probes also
+succeeded; the private pending-token table correctly denied access.
+
+`scripts/check-brand-account-saves.sql` passed against the live database in a
+rolled-back transaction. It exercised both signup profile triggers, brand
+creation/read-back/rename, account insertion, reconnect/update in place,
+duplicate platform rejection, foreign-brand rejection, tenant isolation and
+preservation of accounts when deleting a temporary brand. No test users,
+brands, accounts or token values were committed.
+
+The reported missing-table error is not reproduced on the verified project's
+API. A Lovable preview pointing at another Cloud project is the likely cause;
+the exact preview `VITE_SUPABASE_URL` was requested to confirm it. A schema-cache
+refresh was also requested as a non-destructive precaution.
+
+The shared app client now defaults to the existing project defined in
+`src/lib/supabaseProject.ts`, using only its public anon key. Lovable-injected
+environment values for a different Cloud project cannot silently redirect
+saves there. A key for the same project is still honored. To intentionally
+use a different local/staging backend, set
+`VITE_SOCIALVERSE_USE_ENV_CONFIG=true` along with its public URL and client key.
+No duplicate tables or data were created in another project.
+
+All 22 offline regression/configuration tests passed for this correction.
+
+Existing account failure logs separately show revoked/expired Google refresh
+grants; those YouTube connections require reauthorization. They are sync errors,
+not failures to save a brand.
+
 This status supersedes the earlier audit's statement that database additions
 and backend deployment were pending.
 

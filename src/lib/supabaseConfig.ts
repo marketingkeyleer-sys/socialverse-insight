@@ -2,6 +2,7 @@ interface SupabaseEnvironment {
   VITE_SUPABASE_URL?: string;
   VITE_SUPABASE_PUBLISHABLE_KEY?: string;
   VITE_SUPABASE_ANON_KEY?: string;
+  VITE_SOCIALVERSE_USE_ENV_CONFIG?: string;
 }
 
 export function resolveSupabaseConfig(env: SupabaseEnvironment) {
@@ -24,4 +25,14 @@ export function resolveSupabaseConfig(env: SupabaseEnvironment) {
     throw new Error("Use a public Supabase anon or publishable key");
   }
   return { url, key };
+}
+
+export function resolveAppSupabaseConfig(env: SupabaseEnvironment, project: { url: string; publishableKey: string }) {
+  // Lovable can inject its own Cloud project into generic VITE variables.
+  // Keep the app on its existing database unless another backend is explicitly
+  // selected, rather than creating empty copies of production tables elsewhere.
+  const sameProject = env.VITE_SUPABASE_URL?.trim().replace(/\/$/, "") === project.url.replace(/\/$/, "");
+  const hasKey = Boolean(env.VITE_SUPABASE_PUBLISHABLE_KEY?.trim() || env.VITE_SUPABASE_ANON_KEY?.trim());
+  if (env.VITE_SOCIALVERSE_USE_ENV_CONFIG === "true" || (sameProject && hasKey)) return resolveSupabaseConfig(env);
+  return resolveSupabaseConfig({ VITE_SUPABASE_URL: project.url, VITE_SUPABASE_PUBLISHABLE_KEY: project.publishableKey });
 }
