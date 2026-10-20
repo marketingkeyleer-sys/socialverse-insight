@@ -4,6 +4,19 @@ Project: `evident-pipe-495610-f4` (YouTube Automation).
 The registered client was visually matched to the client used by oauth-start.
 Audience is already External. Public access is not yet verified.
 
+## Applied on 20 October 2026
+
+- Published commit `98f8039` through the existing Lovable Publish changes control.
+- Verified `/privacy` and `/terms` on the live site without authentication.
+- Saved the corrected SocialVerse name and both live policy URLs in Branding.
+- Saved all three scopes below after explicit user approval.
+- Published OAuth to Production after a separate explicit final confirmation.
+  Google visibly reports External / In production, with 1 of 100 users for
+  unapproved scopes. This removes the test-user-only gate but does not remove
+  the unverified-app warning or cap.
+- Started Google's automated branding verification. Google approval and
+  sensitive-scope verification are separate from production publication.
+
 Publish the application update before saving these consent-screen links:
 
 - Homepage: https://socialverse-insight.lovable.app/
