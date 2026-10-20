@@ -1,1 +1,66 @@
-project_id = "rylyjpvzquaarktmbiyt"
+project_id = "socialverse"
+
+[functions.oauth-accounts]
+verify_jwt = true
+
+[functions.oauth-start]
+verify_jwt = true
+
+[functions.oauth-callback]
+# The OAuth provider (Facebook/Google/LinkedIn) redirects the user's browser
+# straight here with no Supabase session attached — verify_jwt must stay off
+# or every callback gets rejected before our own state/CSRF check ever runs.
+verify_jwt = false
+
+[functions.sync-account]
+verify_jwt = true
+
+[functions.publish-post]
+verify_jwt = true
+
+[functions.generate-post]
+verify_jwt = true
+
+[functions.run-due-posts]
+# Called by pg_cron with a shared-secret bearer token, not a Supabase user
+# session — that token isn't a real Supabase JWT, so verify_jwt would reject
+# it outright. Authenticated instead by an explicit CRON_SECRET check inside
+# the function itself.
+verify_jwt = false
+
+[functions.run-due-syncs]
+# Same reasoning as run-due-posts — pg_cron, not a user session.
+verify_jwt = false
+
+[functions.list-conversations]
+verify_jwt = true
+
+[functions.get-messages]
+verify_jwt = true
+
+[functions.send-message]
+verify_jwt = true
+
+[functions.list-ad-accounts]
+verify_jwt = true
+
+[functions.create-ad-campaign]
+verify_jwt = true
+
+[functions.update-ad-status]
+verify_jwt = true
+
+[functions.sync-ad-performance]
+verify_jwt = true
+
+[functions.whatsapp]
+verify_jwt = true
+
+[functions.whatsapp-webhook]
+# Meta calls this directly with no Supabase session. Authenticated instead by
+# the GET verify-token handshake and the X-Hub-Signature-256 HMAC check
+# inside the function itself.
+verify_jwt = false
+
+[functions.connection-status]
+verify_jwt = true
