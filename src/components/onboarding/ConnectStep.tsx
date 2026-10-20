@@ -2,9 +2,10 @@ import { Button } from "@/components/ui/button";
 import { PlatformCard } from "@/components/accounts/PlatformCard";
 import { useConnectedAccounts } from "@/hooks/useConnectedAccounts";
 import { PLATFORM_CONFIGS } from "@/lib/platforms";
-import type { Platform } from "@/types/database";
 import { useState } from "react";
 import { MetaConnectDialog, type MetaPlatform } from "@/components/accounts/MetaConnectDialog";
+import { PlatformConnectDialog, type GuidedPlatform } from "@/components/accounts/PlatformConnectDialog";
+import { availability, useConnectionStatus } from "@/hooks/useConnectionStatus";
 
 // LinkedIn Page is a specialized business feature — it needs a registered
 // company and LinkedIn's Community Management API approval, which almost
@@ -17,6 +18,8 @@ export function ConnectStep({ onNext, onBack }: { onNext: () => void; onBack: ()
   const { data: accounts = [], connect } = useConnectedAccounts();
   const connectedPlatforms = new Set(accounts.map((a) => a.platform));
   const [metaPlatform, setMetaPlatform] = useState<MetaPlatform | null>(null);
+  const [guidedPlatform, setGuidedPlatform] = useState<GuidedPlatform | null>(null);
+  const { data: status } = useConnectionStatus();
 
   return (
     <div className="space-y-6 text-center">
@@ -43,7 +46,10 @@ export function ConnectStep({ onNext, onBack }: { onNext: () => void; onBack: ()
                 if (config.id === "facebook" || config.id === "instagram") {
                   connect.reset();
                   setMetaPlatform(config.id);
-                } else connect.mutate({ platform: config.id as Platform });
+                } else {
+                  connect.reset();
+                  setGuidedPlatform(config.id as GuidedPlatform);
+                }
               }}
               connecting={connect.isPending && connect.variables?.platform === config.id}
             />
@@ -53,7 +59,11 @@ export function ConnectStep({ onNext, onBack }: { onNext: () => void; onBack: ()
 
       {metaPlatform && <MetaConnectDialog key={metaPlatform} platform={metaPlatform} brandName="Unassigned accounts"
         pending={connect.isPending} error={connect.error?.message}
+        unavailableReason={!availability(status?.platforms, metaPlatform).ready ? availability(status?.platforms, metaPlatform).reason : undefined}
         onClose={() => setMetaPlatform(null)} onContinue={() => connect.mutate({platform: metaPlatform})} />}
+      {guidedPlatform && <PlatformConnectDialog key={guidedPlatform} platform={guidedPlatform} brandName="Unassigned accounts"
+        availability={availability(status?.platforms, guidedPlatform)} pending={connect.isPending} error={connect.error?.message}
+        onClose={() => setGuidedPlatform(null)} onContinue={() => connect.mutate({platform: guidedPlatform})} />}
 
       <div className="flex justify-center gap-2">
         <Button variant="ghost" onClick={onBack}>

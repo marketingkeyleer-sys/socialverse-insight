@@ -15,6 +15,7 @@ import { SetupChecklist } from "@/components/accounts/SetupChecklist";
 import { WhatsAppConnectDialog } from "@/components/accounts/WhatsAppConnectDialog";
 import { OAuthAccountPicker } from "@/components/accounts/OAuthAccountPicker";
 import { MetaConnectDialog, type MetaPlatform } from "@/components/accounts/MetaConnectDialog";
+import { PlatformConnectDialog, type GuidedPlatform } from "@/components/accounts/PlatformConnectDialog";
 import { useAuth } from "@/hooks/useAuth";
 import { useBrands } from "@/hooks/useBrands";
 import { availability, useConnectionStatus } from "@/hooks/useConnectionStatus";
@@ -139,6 +140,7 @@ export default function Accounts() {
   const [newBrandName, setNewBrandName] = useState("");
   const [whatsAppDialog, setWhatsAppDialog] = useState<{ brandId: string | null } | null>(null);
   const [metaDialog, setMetaDialog] = useState<{platform: MetaPlatform; brandId: string | null} | null>(null);
+  const [platformDialog, setPlatformDialog] = useState<{platform: GuidedPlatform; brandId: string | null} | null>(null);
 
   // The oauth-callback Edge Function redirects here with ?connected=<platform>
   // or ?connect_error=<message>&platform=<platform> once the provider round-trip
@@ -147,11 +149,12 @@ export default function Accounts() {
     const connected = searchParams.get("connected");
     const connectedCount = searchParams.get("connectedCount");
     const connectError = searchParams.get("connect_error");
-    const platform = searchParams.get("platform") as Platform | null;
+    const platform = PLATFORM_CONFIGS.find(config => config.id === searchParams.get("platform"))?.id;
     if (!connected && !connectError) return;
 
     if (connected) {
-      const label = getPlatformLabel(connected as Platform);
+      const knownPlatform = PLATFORM_CONFIGS.find(config => config.id === connected);
+      const label = knownPlatform ? getPlatformLabel(knownPlatform.id) : "account";
       toast.success(connectedCount ? `Connected ${connectedCount} ${label} accounts!` : `Connected ${label}!`);
       queryClient.invalidateQueries({ queryKey: ["connected-accounts", user?.id] });
     } else if (connectError) {
@@ -172,13 +175,14 @@ export default function Accounts() {
   // Re-running a platform's login refreshes its token in place (same account,
   // same brand). WhatsApp has no login to repeat, so it goes to its page.
   function reconnect(platform: Platform, brandId: string | null) {
-    if (platform === "whatsapp") return;
+    if (platform === "whatsapp") { setWhatsAppDialog({brandId}); return; }
+    actions.connect.reset();
     if (platform === "facebook" || platform === "instagram") {
       actions.connect.reset();
       setMetaDialog({platform, brandId});
       return;
     }
-    actions.connect.mutate({ platform, brandId });
+    setPlatformDialog({platform, brandId});
   }
 
   function handleCreateBrand() {
@@ -232,7 +236,12 @@ export default function Accounts() {
       {metaDialog && <MetaConnectDialog key={`${metaDialog.platform}:${metaDialog.brandId}`} platform={metaDialog.platform}
         brandName={brands.find(brand => brand.id === metaDialog.brandId)?.name ?? "Unassigned accounts"}
         pending={actions.connect.isPending} error={actions.connect.error?.message}
+        unavailableReason={!availability(platformStatus?.platforms, metaDialog.platform).ready ? availability(platformStatus?.platforms, metaDialog.platform).reason : undefined}
         onClose={() => setMetaDialog(null)} onContinue={() => actions.connect.mutate(metaDialog)} />}
+      {platformDialog && <PlatformConnectDialog key={`${platformDialog.platform}:${platformDialog.brandId}`} platform={platformDialog.platform}
+        brandName={brands.find(brand => brand.id === platformDialog.brandId)?.name ?? "Unassigned accounts"}
+        availability={availability(platformStatus?.platforms, platformDialog.platform)} pending={actions.connect.isPending} error={actions.connect.error?.message}
+        onClose={() => setPlatformDialog(null)} onContinue={() => actions.connect.mutate(platformDialog)} />}
 
       {!isLoading && !brandsLoading && (
         <SetupChecklist brands={brands} accounts={accounts} onCreateBrand={() => setNewBrandOpen(true)} />

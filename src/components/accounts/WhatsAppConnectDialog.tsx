@@ -8,8 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useWhatsAppConnect } from "@/hooks/useWhatsApp";
+import { useConnectionStatus } from "@/hooks/useConnectionStatus";
+import { supabasePublicConfig } from "@/lib/supabase";
 
-const WEBHOOK_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whatsapp-webhook`;
+const WEBHOOK_URL = `${supabasePublicConfig.url}/functions/v1/whatsapp-webhook`;
 
 export function WhatsAppConnectDialog({
   open,
@@ -22,13 +24,15 @@ export function WhatsAppConnectDialog({
 }) {
   const connect = useWhatsAppConnect();
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"bridge" | "cloud">("bridge");
+  const [mode, setMode] = useState<"bridge" | "cloud">("cloud");
+  const { data: status } = useConnectionStatus();
+  const bridgeUnavailable = status?.platforms.whatsapp?.ready === false;
 
   const [phoneNumberId, setPhoneNumberId] = useState("");
   const [wabaId, setWabaId] = useState("");
   const [accessToken, setAccessToken] = useState("");
 
-  const ready = mode === "bridge" || (phoneNumberId.trim() && wabaId.trim() && accessToken.trim());
+  const ready = mode === "bridge" ? !bridgeUnavailable : (phoneNumberId.trim() && wabaId.trim() && accessToken.trim());
 
   function submit() {
     const input =
@@ -65,7 +69,7 @@ export function WhatsAppConnectDialog({
         <Tabs value={mode} onValueChange={(v) => setMode(v as "bridge" | "cloud")}>
           <TabsList className="w-full">
             <TabsTrigger value="bridge" className="flex-1">
-              Scan QR code (recommended)
+              Scan QR code
             </TabsTrigger>
             <TabsTrigger value="cloud" className="flex-1">
               Official Cloud API
@@ -73,6 +77,7 @@ export function WhatsAppConnectDialog({
           </TabsList>
 
           <TabsContent value="bridge" className="mt-4 space-y-3">
+            {bridgeUnavailable && <p role="status" className="rounded-lg border p-3 text-sm">{status?.platforms.whatsapp?.reason} Choose Official Cloud API, or ask your administrator to enable QR linking.</p>}
             <ol className="list-decimal space-y-1 pl-5 text-sm text-muted-foreground">
               <li>
                 Click <strong className="text-foreground">Show QR code</strong> below

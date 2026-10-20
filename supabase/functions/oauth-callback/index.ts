@@ -135,7 +135,7 @@ Deno.serve(async (req) => {
     const { data: pending, error: pendingErr } = await admin.from("sv_oauth_pending")
       .insert({ user_id: stateRow.user_id, platform, brand_id: stateRow.brand_id, accounts: rows })
       .select("id").single();
-    if (pendingErr) throw new Error("Could not save the connection request. Apply migration 019.");
+    if (pendingErr) throw new Error("Could not save the connection request. Ask the application administrator to check the connection storage configuration, then try again.");
     return redirect(`${new URL(redirectTo).origin}/accounts`, { connection_request: pending.id });
   } catch (error) {
     return redirect(redirectTo, {

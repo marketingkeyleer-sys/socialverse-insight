@@ -5,9 +5,9 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { getPlatformIcon } from "@/lib/platforms";
 
 export type MetaPlatform = "facebook" | "instagram";
-export function MetaConnectDialog({platform, brandName, pending, error, onClose, onContinue}: {
+export function MetaConnectDialog({platform, brandName, pending, error, unavailableReason, onClose, onContinue}: {
   platform: MetaPlatform; brandName: string; pending: boolean; error?: string;
-  onClose: () => void; onContinue: () => void;
+  unavailableReason?: string; onClose: () => void; onContinue: () => void;
 }) {
   const [accountType, setAccountType] = useState<"ready" | "personal">("ready");
   const instagram = platform === "instagram";
@@ -41,7 +41,8 @@ export function MetaConnectDialog({platform, brandName, pending, error, onClose,
         <p className="rounded-lg bg-muted/40 p-3 text-xs leading-relaxed text-muted-foreground">Missing a Page or Instagram account? Check that you signed in with the right Facebook account, have the required Page access, and selected that asset in Meta's permission screen.</p>
       </div>}
       {error && <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive">{error}</p>}
-      <DialogFooter><Button variant="outline" onClick={onClose} disabled={pending}>Cancel</Button><Button disabled={!ready || pending} onClick={onContinue}>{pending ? "Opening Facebook…" : "Continue with Facebook"}<ArrowRight className="ml-2 h-4 w-4"/></Button></DialogFooter>
+      {unavailableReason && <p role="status" className="rounded-lg border p-3 text-sm">{unavailableReason} Contact your workspace administrator to enable this platform.</p>}
+      <DialogFooter><Button variant="outline" onClick={onClose} disabled={pending}>Cancel</Button><Button disabled={!ready || pending || Boolean(unavailableReason)} onClick={onContinue}>{pending ? "Opening Facebook…" : "Continue with Facebook"}<ArrowRight className="ml-2 h-4 w-4"/></Button></DialogFooter>
       <p className="flex items-center gap-1.5 text-[10px] text-muted-foreground"><CheckCircle2 className="h-3 w-3"/>Connection does not publish a post. Publishing needs the platform's permissions.</p>
     </DialogContent>
   </Dialog>;

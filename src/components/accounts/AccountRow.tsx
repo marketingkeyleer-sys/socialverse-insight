@@ -151,6 +151,7 @@ export function AccountRow({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-52">
+            {!whatsapp && <DropdownMenuItem onSelect={onReconnect}>Review access / reconnect</DropdownMenuItem>}
             {!whatsapp && (
               <DropdownMenuItem onSelect={() => setPostsOpen(true)}>View recent posts</DropdownMenuItem>
             )}

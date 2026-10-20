@@ -38,8 +38,20 @@ export interface ProviderConfig {
 }
 
 async function jsonGet(url: string, token: string, extraHeaders?: Record<string, string>) {
-  const res = await fetch(url, { headers: { Authorization: `Bearer ${token}`, ...extraHeaders } });
-  if (!res.ok) throw new Error(`Account discovery failed (HTTP ${res.status}). Check app permissions and reconnect.`);
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${token}`, ...extraHeaders }, signal: AbortSignal.timeout(15000) });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    if (res.status === 429 || body?.error?.code === 4 || body?.error?.code === 17) {
+      throw new Error("The platform is temporarily limiting requests. Wait a few minutes, then try connecting again.");
+    }
+    if (res.status === 401 || body?.error?.code === 190) {
+      throw new Error("Your platform authorization expired or was revoked. Sign in again and review the access you allow.");
+    }
+    if (res.status === 403 || [10, 200].includes(body?.error?.code)) {
+      throw new Error("The platform has not allowed this account access. Check your Page or channel role and selected assets. The application owner may also need provider approval.");
+    }
+    throw new Error(`Account discovery failed (HTTP ${res.status}). Check app permissions and reconnect.`);
+  }
   // deno-lint-ignore no-explicit-any
   return res.json() as Promise<any>;
 }
@@ -48,10 +60,13 @@ async function metaPages(url: string, token: string) {
   // Follow provider pagination, retaining a fixed trusted origin. Do not
   // truncate a user's authorized Pages after the first hundred.
   const data = [];
+  const visited = new Set<string>();
   let next: string | undefined = url;
   while (next) {
     const parsed = new URL(next);
-    if (parsed.origin !== "https://graph.facebook.com") throw new Error("Invalid account pagination URL");
+    if (parsed.origin !== "https://graph.facebook.com" || parsed.username || parsed.password) throw new Error("Invalid account pagination URL");
+    if (visited.has(parsed.toString()) || visited.size >= 100) throw new Error("Account discovery could not finish. Please try connecting again.");
+    visited.add(parsed.toString());
     const page = await jsonGet(parsed.toString(), token);
     data.push(...(page.data ?? []));
     next = page.paging?.next;
@@ -214,20 +229,27 @@ export const PROVIDERS: Record<PlatformId, ProviderConfig> = {
     clientIdEnv: "GOOGLE_CLIENT_ID",
     clientSecretEnv: "GOOGLE_CLIENT_SECRET",
     userInfo: async (token) => {
-      const j = await jsonGet(
-        "https://youtube.googleapis.com/youtube/v3/channels?part=snippet,statistics&mine=true",
-        token,
-      );
-      const ch = j.items?.[0];
-      if (!ch) throw new Error("No YouTube channel found on this Google account.");
-      return [{
+      const channels = new Map();
+      const visited = new Set<string>();
+      let pageToken = "";
+      do {
+        if (visited.has(pageToken) || visited.size >= 100) throw new Error("Channel discovery could not finish. Please try connecting again.");
+        visited.add(pageToken);
+        const url = new URL("https://youtube.googleapis.com/youtube/v3/channels");
+        url.search = new URLSearchParams({ part: "snippet,statistics", mine: "true", maxResults: "50", ...(pageToken ? {pageToken} : {}) }).toString();
+        const page = await jsonGet(url.toString(), token);
+        for (const channel of page.items ?? []) if (channel.id) channels.set(channel.id, channel);
+        pageToken = page.nextPageToken ?? "";
+      } while (pageToken);
+      if (!channels.size) throw new Error("No YouTube channel found. Choose the Google or Brand Account that owns your channel, then reconnect.");
+      return [...channels.values()].map(ch => ({
         id: ch.id,
         name: ch.snippet?.title,
         handle: ch.snippet?.customUrl,
         avatar: ch.snippet?.thumbnails?.default?.url,
         followers: Number(ch.statistics?.subscriberCount ?? 0),
         posts: Number(ch.statistics?.videoCount ?? 0),
-      }];
+      }));
     },
   },
 };

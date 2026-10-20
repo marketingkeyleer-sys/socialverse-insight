@@ -12,7 +12,13 @@ The production review's app-settings step initially used https://www.robotverse.
 
 The current wizard reports Verification, App settings, Data handling and Reviewer instructions at 100%; Allowed usage is 0%. These completion indicators do not establish that the business's earlier answers are accurate or that Meta has approved them. Existing data-handling and reviewer instructions have not been replaced or newly attested by this work.
 
-The pages_show_list usage description was entered in its review dialog for inspection, but not saved or submitted. The dialog requires a genuine screen recording incorporating OAuth. Its compliance checkbox was already checked when opened; no new compliance agreement was made by this work. The owner was asked whether to focus the existing broad draft on connections, add publishing/analytics, or keep every current request. No requests were removed while that choice remained unanswered.
+The owner explicitly chose to keep all 25 existing requests. None was removed. Usage descriptions were saved as incomplete drafts for pages_show_list, pages_read_engagement, instagram_basic, read_insights, pages_manage_posts, pages_messaging, ads_read, ads_management, whatsapp_business_messaging and whatsapp_business_management. Allowed-use agreement checkboxes were left unchecked; no new compliance agreement or final submission was made. Genuine recordings incorporating OAuth are still required. The pages_messaging draft also needs a controlled test Page and reviewer reproduction instructions.
+
+The permission dialogs mark API tests Completed for pages_read_engagement, instagram_basic, read_insights, pages_manage_posts, pages_messaging, ads_read and ads_management. These are Meta's existing indicators, not a claim that this work ran those tests or demonstrated all features end to end.
+
+WhatsApp messaging also shows its existing API test as Completed. Its business description identifies SocialVerse as a brand, content, analytics and authorized-conversation management product. The custom draft describes approved-template Cloud API messaging to opted-in contacts and delivery webhooks, explicitly distinguishing the QR bridge. Meta's generated suggestion was not accepted: it introduced unsupported claims about onboarding several businesses and registering phone numbers.
+
+The WhatsApp business-management draft describes only the implemented WABA membership check, business phone information and approved-template reads. It does not claim to create WABAs or register new numbers. Its existing API test indicator also reads Completed. Both WhatsApp saves returned to the permission list. Reopening can trigger a delayed Meta suggestion/loading dialog.
 
 ## Existing draft scope
 
@@ -20,7 +26,11 @@ The existing production review draft includes many features beyond connecting Fa
 
 For the existing Facebook Login connection route, the source defaults are public_profile, pages_show_list, pages_read_engagement and instagram_basic. Server configuration can override defaults. instagram_business_basic belongs to the separate Instagram Login route and is not a substitute for instagram_basic in the current flow.
 
-If the owner wants a focused connection-only submission, explicitly confirm changes to the existing draft before removing unrelated requests. Publishing and deeper analytics may require additional reviewed permissions; do not broaden OAuth scopes just to make the review form look complete.
+Keep all existing requests unless the owner changes that instruction. Publishing and deeper analytics may require additional reviewed permissions; do not broaden OAuth scopes just to make the review form look complete.
+
+The audited source does not demonstrate fundraising, Threads, catalogs, Ads MCP, lead retrieval, Instagram comment moderation or live streaming. The owner supplied the SocialVerse homepage when asked for feature URLs, but that does not establish these workflows or example charities. Retain these requests incomplete rather than invent descriptions or evidence. The separate instagram_business_* permissions use Instagram Login, whereas the implemented connection registry uses Facebook Login.
+
+Meta's publish_video dialog explicitly describes live-video streaming. Existing regular video uploads through the Page videos endpoint do not substantiate this live-streaming request. Its dialog was inspected and left unchanged.
 
 ## Draft usage descriptions (review before submitting)
 
@@ -71,3 +81,24 @@ Reviewer path: sign in → Accounts → select a brand → Add Facebook Page or 
 - Final action-time approval before submitting an access-expansion request, if required by browser policy.
 
 Only Meta can approve the requested permission access. Published mode and verified business status do not by themselves mean the app is approved for every customer's assets.
+
+## Remaining broad-request evidence
+
+All 25 requests remain. No scope, role or live permission was expanded during drafting.
+
+| Request group | Remaining evidence |
+| --- | --- |
+| Page discovery, Page reads, Instagram basic, Insights | Genuine OAuth, asset selection and dashboard recordings; authorized-person allowed-use agreement |
+| Page publishing | Controlled Page publishing demonstration and agreement |
+| Page messaging | Controlled real Facebook tester and Page, reviewer access and reproduction instructions, genuine conversation/reply recording and agreement |
+| Ads read/manage | Authorized advertising account demonstration without unapproved spend; agreement |
+| WhatsApp messaging/management | Controlled WABA, number, approved template and opted-in test recipient; genuine Cloud API setup and use recording; agreement |
+| pages_manage_metadata | Verify actual Page webhook subscription/metadata workflow and demonstrate it |
+| pages_manage_ads / Marketing API Access Tier | Establish precise Page-ad workflow and access-tier justification; demonstrate it |
+| business_management | Identify the Business Management operations requiring this broad permission; do not justify it solely with Page selection |
+| instagram_business_basic / instagram_business_manage_messages | Establish and demonstrate the separate Instagram Login implementation |
+| instagram_manage_comments / leads_retrieval | Implement or identify actual moderation and lead-retrieval workflows and provide evidence |
+| manage_fundraisers | Actual charity names, authorized fundraising feature and business purpose |
+| catalog_management / threads_basic / ads_mcp_management | Actual implemented feature URLs, purpose and genuine demonstrations |
+| publish_video / Live Video API | Actual live-streaming implementation and demonstration; regular video uploads do not establish live streaming |
+| public_profile | Existing completed response left unchanged |
