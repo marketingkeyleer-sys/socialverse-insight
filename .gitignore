@@ -2,6 +2,10 @@ node_modules
 dist
 .env.local
 .env
+.env.*
+# Lovable builds require the root frontend-only public configuration.
+!/.env
+!.env.example
 .supabase
 supabase/.temp
 *.log

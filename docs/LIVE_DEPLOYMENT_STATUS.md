@@ -66,6 +66,28 @@ publish and cron requests return 401. A callback missing state returns a safe
 
 ## Frontend deployment pending
 
+### Lovable startup correction
+
+The user supplied `https://socialverse-insight.lovable.app/`. A browser check
+confirmed a blank page and the runtime error `Missing VITE_SUPABASE_URL or
+VITE_SUPABASE_ANON_KEY` before React rendered. The main app used the legacy
+anon variable while Lovable's generated integration used the publishable name;
+the repository also omitted frontend build configuration.
+
+The root `.env` now contains only the verified public Supabase URL and anon
+client key, available under both supported variable names. It contains no
+service-role key, provider client secret or encryption secret. Local/private
+overrides and backend `.env` files remain ignored. `resolveSupabaseConfig`
+supports both names and rejects private server keys in frontend configuration.
+
+Publish the synced update from the Lovable project to replace the existing
+published bundle. GitHub synchronization alone is not proof of publication.
+The startup configuration suite and existing regressions pass: 18 tests total.
+After explicit user approval, backend `APP_URL` was set to the production URL
+and the production origin plus localhost/127.0.0.1 port 5173 were allowed.
+The Lovable editor requires login in the available browser, so its Publish
+control was not accessible during this fix.
+
 The current server-configured return origin is `http://localhost:5173`.
 The user has not yet supplied a frontend hosting destination/project.
 Once supplied, deploy `dist/`, configure SPA routing and public Supabase
