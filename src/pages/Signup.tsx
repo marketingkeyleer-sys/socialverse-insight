@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { APP_NAME } from "@/lib/constants";
+import { useGoogleSignIn } from "@/hooks/useGoogleSignIn";
 
 function passwordStrength(password: string): { score: 0 | 1 | 2 | 3; label: string; color: string } {
   let score = 0;
@@ -22,6 +23,7 @@ function passwordStrength(password: string): { score: 0 | 1 | 2 | 3; label: stri
 }
 
 export default function Signup() {
+  const { data: googleEnabled = false } = useGoogleSignIn();
   const { signUp, signInWithGoogle } = useAuth();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -78,7 +80,7 @@ export default function Signup() {
           <CardDescription>Start managing every channel in one place</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Button variant="outline" className="w-full" onClick={() => void signInWithGoogle()} type="button">
+          {googleEnabled && <><Button variant="outline" className="w-full" onClick={async () => { const result = await signInWithGoogle(); if (result.error) setError(result.error); }} type="button">
             Continue with Google
           </Button>
 
@@ -86,7 +88,7 @@ export default function Signup() {
             <Separator className="flex-1" />
             <span className="text-xs text-muted-foreground">or continue with</span>
             <Separator className="flex-1" />
-          </div>
+          </div></>}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">

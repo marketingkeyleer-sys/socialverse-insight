@@ -9,8 +9,10 @@ import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/hooks/useAuth";
 import { APP_NAME } from "@/lib/constants";
 import { loginReturnPath } from "@/lib/oauthNavigation";
+import { useGoogleSignIn } from "@/hooks/useGoogleSignIn";
 
 export default function Login() {
+  const { data: googleEnabled = false } = useGoogleSignIn();
   const { signIn, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -45,7 +47,7 @@ export default function Login() {
           <CardDescription>Sign in to manage your social accounts</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Button variant="outline" className="w-full" onClick={() => void signInWithGoogle(from)} type="button">
+          {googleEnabled && <><Button variant="outline" className="w-full" onClick={async () => { const result = await signInWithGoogle(from); if (result.error) setError(result.error); }} type="button">
             Continue with Google
           </Button>
 
@@ -53,7 +55,7 @@ export default function Login() {
             <Separator className="flex-1" />
             <span className="text-xs text-muted-foreground">or continue with</span>
             <Separator className="flex-1" />
-          </div>
+          </div></>}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">

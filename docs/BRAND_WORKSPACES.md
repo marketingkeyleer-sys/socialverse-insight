@@ -65,6 +65,13 @@ Placeholder testimonials and an unsupported team feature claim were removed.
   variant persistence, independent audience totals, same-owner company
   boundaries and cross-user references. Every test row was rolled back.
 - The production build passed. Existing lint warnings remain; no lint errors.
+- The live API returned HTTP 200 for the new fields, empty account scopes,
+  per-company post filters and unassigned legacy post filters.
+- A read-only browser attempt found that Supabase Google website sign-in is
+  disabled (`Unsupported provider: provider is not enabled`). Login and signup
+  now query public Auth settings and show that button only when it is enabled.
+  Email authentication remains available. This does not disable or change
+  the separate YouTube channel OAuth flow.
 - A separate attempt to create a production QA login was rejected by automatic
   approval review. It was not retried or bypassed; no persistent QA login was
   created. Browser verification uses public pages and existing-account reads.
