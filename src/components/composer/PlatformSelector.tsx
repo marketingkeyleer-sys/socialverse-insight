@@ -29,7 +29,7 @@ export function PlatformSelector({
   }
 
   return (
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-2">
       {accounts.filter((a) => a.is_active).map((account) => {
         const config = PLATFORM_CONFIGS.find((p) => p.id === account.platform)!;
         const isConnected = true;

@@ -1,9 +1,9 @@
-interface Account { id: string; user_id: string; platform: string; is_active: boolean }
-interface Post { user_id: string; platforms: string[]; connected_account_ids?: string[] | null }
+interface Account { id: string; user_id: string; platform: string; is_active: boolean; brand_id?: string | null }
+interface Post { user_id: string; platforms: string[]; connected_account_ids?: string[] | null; brand_id?: string | null }
 
 export function selectPublishTargets<T extends Account>(ownerId: string, post: Post, accounts: T[]): T[] {
   if (post.user_id !== ownerId) throw new Error("Post belongs to another user");
-  const owned = accounts.filter((a) => a.user_id === ownerId && a.is_active);
+  const owned = accounts.filter((a) => a.user_id === ownerId && a.is_active && (!post.brand_id || a.brand_id === post.brand_id));
   if (post.connected_account_ids?.length) {
     const ids = [...new Set(post.connected_account_ids)];
     const targets = ids.map((id) => owned.find((a) => a.id === id));

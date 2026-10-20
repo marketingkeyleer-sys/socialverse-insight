@@ -14,6 +14,15 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
 
 const BY_ID = new Map(PLATFORM_CONFIGS.map((p) => [p.id, p]));
 
+export const PLATFORM_DETAILS: Record<Platform, { caption: string; website: string }> = {
+  facebook: { caption: "Page updates, community content and audience insights.", website: "https://www.facebook.com/" },
+  instagram: { caption: "Visual stories, image posts and creator performance.", website: "https://www.instagram.com/" },
+  youtube: { caption: "Channel videos, subscribers and video analytics.", website: "https://www.youtube.com/" },
+  linkedin: { caption: "Professional updates for your personal profile.", website: "https://www.linkedin.com/" },
+  linkedin_page: { caption: "Company-page content and business communications.", website: "https://www.linkedin.com/" },
+  whatsapp: { caption: "Customer conversations and business broadcasts.", website: "https://www.whatsapp.com/" },
+};
+
 export function getPlatformConfig(id: Platform): PlatformConfig {
   const config = BY_ID.get(id);
   if (!config) throw new Error(`Unknown platform: ${id}`);
@@ -25,6 +34,7 @@ export function getPlatformIcon(id: Platform) {
 }
 
 export function getPlatformColor(id: Platform): string {
+  if (id === "linkedin_page") return "#7356b5";
   return getPlatformConfig(id).color;
 }
 

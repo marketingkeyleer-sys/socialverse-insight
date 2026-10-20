@@ -1,3 +1,5 @@
+import { useBrandScope } from "@/contexts/BrandContext";
+import { postBrandFilter, ALL_BRANDS, UNGROUPED } from "@/lib/brandScope";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
@@ -15,8 +17,9 @@ const PAGE_SIZE = 20;
 
 export function usePosts(filters: PostFilters = {}, page = 0) {
   const { user } = useAuth();
+  const scope = useBrandScope();
   const queryClient = useQueryClient();
-  const listKey = ["posts", user?.id, filters, page];
+  const listKey = ["posts", user?.id, scope.brandId, scope.accountIds, filters, page];
 
   const list = useQuery({
     queryKey: listKey,
@@ -27,22 +30,24 @@ export function usePosts(filters: PostFilters = {}, page = 0) {
         .order("created_at", { ascending: false })
         .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
 
+      const brandFilter = postBrandFilter(scope.brandId, scope.accountIds);
+      if (brandFilter) query = query.or(brandFilter);
       if (filters.status) query = query.eq("status", filters.status);
       if (filters.platform) query = query.contains("platforms", [filters.platform]);
       if (filters.search) query = query.ilike("content", `%${filters.search}%`);
 
       const { data, error, count } = await query;
       if (error) throw error;
-      return { posts: data, total: count ?? 0 };
+      return { posts: data.map((post) => ({ ...post, sv_post_platform_results: post.sv_post_platform_results.filter((result) => scope.brandId === ALL_BRANDS || (result.connected_account_id !== null && scope.accountIds.includes(result.connected_account_id))) })), total: count ?? 0 };
     },
-    enabled: Boolean(user?.id),
+    enabled: Boolean(user?.id) && scope.ready,
   });
 
   const createPost = useMutation({
     mutationFn: async (input: Omit<TablesInsert<"sv_posts">, "user_id">) => {
       const { data, error } = await supabase
         .from("sv_posts")
-        .insert({ ...input, user_id: user!.id })
+        .insert({ ...input, user_id: user!.id, brand_id: input.brand_id ?? (scope.brandId === ALL_BRANDS || scope.brandId === UNGROUPED ? null : scope.brandId) })
         .select()
         .single();
       if (error) throw error;
@@ -90,6 +95,8 @@ export function usePosts(filters: PostFilters = {}, page = 0) {
           user_id: user!.id,
           title: original.title ? `${original.title} (copy)` : null,
           content: original.content,
+          brand_id: original.brand_id,
+          platform_content: original.platform_content,
           media_urls: original.media_urls,
           platforms: original.platforms,
           connected_account_ids: original.connected_account_ids,
@@ -131,17 +138,21 @@ export function usePosts(filters: PostFilters = {}, page = 0) {
 }
 
 export function usePost(id: string | undefined) {
+  const { user } = useAuth();
+  const scope = useBrandScope();
   return useQuery({
-    queryKey: ["post", id],
+    queryKey: ["post", user?.id, scope.brandId, scope.accountIds, id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("sv_posts")
         .select("*, sv_post_platform_results(*)")
-        .eq("id", id!)
-        .single();
+        .eq("id", id!);
+      const brandFilter = postBrandFilter(scope.brandId, scope.accountIds);
+      if (brandFilter) q = q.or(brandFilter);
+      const { data, error } = await q.single();
       if (error) throw error;
-      return data;
+      return { ...data, sv_post_platform_results: data.sv_post_platform_results.filter((result) => scope.brandId === ALL_BRANDS || (result.connected_account_id !== null && scope.accountIds.includes(result.connected_account_id))) };
     },
-    enabled: Boolean(id),
+    enabled: Boolean(id) && Boolean(user?.id) && scope.ready,
   });
 }

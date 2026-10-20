@@ -14,13 +14,14 @@ import { PlatformPostsTable } from "@/components/analytics/PlatformPostsTable";
 import { UnconnectedPlatforms } from "@/components/dashboard/UnconnectedPlatforms";
 import { useAnalytics, useTopPosts, last } from "@/hooks/useAnalytics";
 import { useAllPlatformPosts } from "@/hooks/useAllPlatformPosts";
-import { useConnectedAccounts } from "@/hooks/useConnectedAccounts";
+import { useScopedAccounts as useConnectedAccounts, useBrandScope } from "@/contexts/BrandContext";
 import { usePosts } from "@/hooks/usePosts";
 import { PLATFORM_CONFIGS } from "@/lib/platforms";
 import { cn, formatNumber } from "@/lib/utils";
 import type { Platform } from "@/types/database";
 
 export default function Analytics() {
+  const scope = useBrandScope();
   const [range, setRange] = useState(last(30));
   const [activeDays, setActiveDays] = useState<number | null>(30);
   const [platform, setPlatform] = useState<Platform | undefined>(undefined);
@@ -58,7 +59,7 @@ export default function Analytics() {
   return (
     <div className="mx-auto max-w-6xl space-y-6 p-4 md:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">Analytics</h1>
+        <div><p className="text-xs uppercase tracking-widest text-primary">{scope.brandName}</p><h1 className="text-2xl font-semibold tracking-tight">Brand performance</h1><p className="mt-1 text-sm text-muted-foreground">Real results from this workspace's channels. Platform audiences are counted separately.</p></div>
         <Button variant="outline" size="sm" onClick={handleExport}>
           <Download className="mr-1.5 h-4 w-4" />
           Export CSV

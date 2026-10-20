@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { LogOut, Moon, Settings, Sun, User } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -11,8 +11,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/useTheme";
-import { APP_NAME } from "@/lib/constants";
 import { NotificationsBell } from "@/components/layout/NotificationsBell";
+import { BrandSelector } from "@/components/layout/BrandSelector";
 
 export function Navbar() {
   const { profile, signOut } = useAuth();
@@ -26,9 +26,7 @@ export function Navbar() {
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-background/80 px-4 backdrop-blur md:px-6">
-      <Link to="/dashboard" className="text-lg font-semibold tracking-tight hover:opacity-80 md:hidden">
-        {APP_NAME}
-      </Link>
+      <BrandSelector />
       <div className="ml-auto flex items-center gap-2">
         <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label="Toggle theme">
           {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}

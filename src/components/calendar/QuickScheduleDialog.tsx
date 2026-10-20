@@ -14,7 +14,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { PlatformSelector } from "@/components/composer/PlatformSelector";
-import { useConnectedAccounts } from "@/hooks/useConnectedAccounts";
+import { useScopedAccounts as useConnectedAccounts, useBrandScope } from "@/contexts/BrandContext";
+import { ALL_BRANDS } from "@/lib/brandScope";
 import { usePosts } from "@/hooks/usePosts";
 import { supabase } from "@/lib/supabase";
 import { formatDate } from "@/lib/utils";
@@ -30,6 +31,7 @@ export function QuickScheduleDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const { data: accounts = [] } = useConnectedAccounts();
+  const scope = useBrandScope();
   const { createPost } = usePosts();
 
   const [title, setTitle] = useState("");
@@ -52,6 +54,10 @@ export function QuickScheduleDialog({
   };
 
   const togglePlatform = (accountId: string) => {
+    const platform = accounts.find((a) => a.id === accountId)?.platform;
+    if (!selectedAccountIds.includes(accountId) && platforms.length && platform !== platforms[0]) {
+      toast.info("Quick scheduling uses one platform. Open Compose to tailor content for multiple platforms."); return;
+    }
     setSelectedAccountIds((prev) => (prev.includes(accountId) ? prev.filter((id) => id !== accountId) : [...prev, accountId]));
   };
 
@@ -80,6 +86,7 @@ export function QuickScheduleDialog({
   };
 
   const handleSchedule = async () => {
+    if (scope.brandId === ALL_BRANDS) { toast.error("Choose a brand workspace before scheduling"); return; }
     if (!date) return;
     if (!caption.trim()) {
       toast.error("Generate or write a caption first");

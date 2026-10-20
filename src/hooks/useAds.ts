@@ -1,3 +1,4 @@
+import { useBrandScope } from "@/contexts/BrandContext";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
@@ -6,16 +7,17 @@ import type { Ad, AdAccount, AdCampaign, AdObjective, AdSet } from "@/types/data
 
 export function useAdAccounts() {
   const { user } = useAuth();
+  const scope = useBrandScope();
   const queryClient = useQueryClient();
 
   const list = useQuery({
-    queryKey: ["ad-accounts", user?.id],
+    queryKey: ["ad-accounts", user?.id, scope.brandId, scope.accountIds],
     queryFn: async () => {
-      const { data, error } = await supabase.from("sv_ad_accounts").select("*").order("created_at", { ascending: false });
+      const { data, error } = await supabase.from("sv_ad_accounts").select("*").in("connected_account_id", scope.accountIds).order("created_at", { ascending: false });
       if (error) throw error;
       return data as AdAccount[];
     },
-    enabled: Boolean(user?.id),
+    enabled: Boolean(user?.id) && scope.ready,
   });
 
   const refresh = useMutation({
@@ -29,7 +31,7 @@ export function useAdAccounts() {
       return data;
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["ad-accounts", user?.id] });
+      await queryClient.invalidateQueries({ queryKey: ["ad-accounts", user?.id, scope.brandId, scope.accountIds] });
       toast.success("Ad accounts refreshed");
     },
     onError: (error: Error) => toast.error(error.message || "Could not fetch ad accounts"),
@@ -44,18 +46,22 @@ export interface CampaignWithChildren extends AdCampaign {
 
 export function useAdCampaigns() {
   const { user } = useAuth();
+  const scope = useBrandScope();
 
   return useQuery({
-    queryKey: ["ad-campaigns", user?.id],
+    queryKey: ["ad-campaigns", user?.id, scope.brandId, scope.accountIds],
     queryFn: async () => {
+      const parent = await supabase.from("sv_ad_accounts").select("id").in("connected_account_id", scope.accountIds);
+      if (parent.error) throw parent.error;
       const { data, error } = await supabase
         .from("sv_ad_campaigns")
         .select("*, sv_ad_sets(*, sv_ads(*))")
+        .in("ad_account_id", parent.data.map((row) => row.id))
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as CampaignWithChildren[];
     },
-    enabled: Boolean(user?.id),
+    enabled: Boolean(user?.id) && scope.ready,
   });
 }
 
@@ -137,6 +143,7 @@ export interface BoostablePost {
 // nothing to boost.
 export function useBoostablePosts() {
   const { user } = useAuth();
+  const scope = useBrandScope();
 
   return useQuery({
     queryKey: ["boostable-posts", user?.id],
@@ -162,7 +169,7 @@ export function useBoostablePosts() {
           publishedAt: r.published_at,
         })) as BoostablePost[];
     },
-    enabled: Boolean(user?.id),
+    enabled: Boolean(user?.id) && scope.ready,
   });
 }
 

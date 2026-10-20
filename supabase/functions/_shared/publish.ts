@@ -8,6 +8,7 @@ import { getYouTubeAccessToken } from "./sync.ts";
 import { createAndRunBroadcast } from "./whatsapp.ts";
 import { selectPublishTargets } from "./publish-policy.ts";
 import { publishLinkedInText } from "./linkedin.ts";
+import { platformPostContent, validatePlatformDraft } from "./content-policy.ts";
 
 const GRAPH_VERSION = "v21.0";
 
@@ -276,6 +277,11 @@ export async function publishPost(
   if (accountsError) throw accountsError;
   const targets = selectPublishTargets(userId, post, accounts ?? []);
   if (!targets.length) throw new Error("Select at least one destination account");
+  const targetContent = new Map(targets.map((account) => {
+    const draft = platformPostContent(post, account.platform);
+    validatePlatformDraft(account.platform, draft);
+    return [account.id, draft] as const;
+  }));
   const { data: history, error: historyError } = await supabase.from("sv_post_platform_results")
     .select("*").eq("post_id", post.id).eq("user_id", userId);
   if (historyError) throw historyError;
@@ -292,6 +298,7 @@ export async function publishPost(
   const allResults: TargetResult[] = [];
 
   for (const account of targets) {
+    const targetPost = targetContent.get(account.id)!;
     const platform = account.platform;
     const results = { push: (result: TargetResult) => allResults.push({ ...result, connectedAccountId: account.id }) };
     const alreadyPublished = previous?.find((r: { connected_account_id: string }) => r.connected_account_id === account.id);
@@ -302,11 +309,11 @@ export async function publishPost(
       }
       if (platform === "linkedin" || platform === "linkedin_page") {
         try {
-          if (post.media_urls?.length) throw new Error("LinkedIn currently supports text posts here. Remove media or publish this destination separately.");
+          if (targetPost.media_urls?.length) throw new Error("LinkedIn currently supports text posts here. Remove media or publish this destination separately.");
           if (!account.access_token_ciphertext || !account.token_iv) throw new Error("Reconnect LinkedIn to enable publishing");
           if (account.token_expires_at && new Date(account.token_expires_at).getTime() <= Date.now()) throw new Error("LinkedIn authorization expired. Reconnect to publish.");
           const token = await decryptToken(account.access_token_ciphertext, account.token_iv);
-          const { id, url } = await publishLinkedInText(account.platform_user_id, platform === "linkedin_page", token, post.content);
+          const { id, url } = await publishLinkedInText(account.platform_user_id, platform === "linkedin_page", token, targetPost.content);
           results.push({ platform, status: "published", platformPostId: id, publishedUrl: url, errorMessage: null });
         } catch (error) {
           results.push({ platform, status: "failed", platformPostId: null, publishedUrl: null, errorMessage: publishError(error) });
@@ -316,8 +323,8 @@ export async function publishPost(
       if (platform === "whatsapp") {
         try {
           const { broadcastId, counts } = await createAndRunBroadcast(supabase, userId, account, {
-            text: post.content,
-            mediaUrl: post.media_urls?.[0] ?? null,
+            text: targetPost.content,
+            mediaUrl: targetPost.media_urls?.[0] ?? null,
             postId: post.id,
             options: post.whatsapp_options,
           });
@@ -356,14 +363,14 @@ export async function publishPost(
           return;
         }
         try {
-          const title = post.title || post.content;
+          const title = targetPost.title || targetPost.content;
           const { id, url } = await publishToYouTube(
             supabase,
             account,
             account.id,
             title,
-            post.content,
-            post.media_urls ?? [],
+            targetPost.content,
+            targetPost.media_urls ?? [],
           );
           results.push({ platform, status: "published", platformPostId: id, publishedUrl: url, errorMessage: null });
         } catch (error) {
@@ -395,8 +402,8 @@ export async function publishPost(
         const pageToken = await decryptToken(account.page_access_token_ciphertext, account.page_access_token_iv);
         const { id, url } =
           platform === "facebook"
-            ? await publishToFacebook(account.platform_user_id, pageToken, post.content, post.media_urls ?? [])
-            : await publishToInstagram(account.platform_user_id, pageToken, post.content, post.media_urls ?? []);
+            ? await publishToFacebook(account.platform_user_id, pageToken, targetPost.content, targetPost.media_urls ?? [])
+            : await publishToInstagram(account.platform_user_id, pageToken, targetPost.content, targetPost.media_urls ?? []);
         results.push({ platform, status: "published", platformPostId: id, publishedUrl: url, errorMessage: null });
       } catch (error) {
         results.push({

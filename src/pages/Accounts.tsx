@@ -20,6 +20,8 @@ import { availability, useConnectionStatus } from "@/hooks/useConnectionStatus";
 import { useConnectedAccounts } from "@/hooks/useConnectedAccounts";
 import { PLATFORM_CONFIGS, getPlatformLabel } from "@/lib/platforms";
 import type { Brand, Platform } from "@/types/database";
+import { useBrandScope } from "@/contexts/BrandContext";
+import { ALL_BRANDS, UNGROUPED } from "@/lib/brandScope";
 
 type Accounts = ReturnType<typeof useConnectedAccounts>;
 
@@ -122,6 +124,7 @@ function BrandCard({
 }
 
 export default function Accounts() {
+  const scope = useBrandScope();
   const { user, profile } = useAuth();
   const actions = useConnectedAccounts();
   const { data: platformStatus } = useConnectionStatus();
@@ -175,7 +178,8 @@ export default function Accounts() {
     const name = newBrandName.trim();
     if (!name) return;
     createBrand.mutate(name, {
-      onSuccess: () => {
+      onSuccess: (brand) => {
+        scope.setBrandId(brand.id);
         setNewBrandName("");
         setNewBrandOpen(false);
       },
@@ -189,11 +193,11 @@ export default function Accounts() {
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-semibold tracking-tight">Connected accounts</h1>
             <Badge variant="secondary">
-              {accounts.length} / {maxAccounts}
+              {scope.accounts.length} in workspace · {maxAccounts === 2147483647 ? "Unlimited plan" : `${accounts.length} / ${maxAccounts} total`}
             </Badge>
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
-            Create a brand, then connect one account per platform to it.
+            {scope.brandName} · Each brand is a separate company. Connect and manage its own platform accounts here.
           </p>
         </div>
         <Button size="sm" onClick={() => setNewBrandOpen(true)}>
@@ -212,7 +216,7 @@ export default function Accounts() {
       <div className="flex flex-wrap gap-2">
         {PLATFORM_CONFIGS.filter((p) => p.id !== "whatsapp").map((p) => <Button key={p.id} variant="outline" size="sm"
           disabled={atLimit || actions.connect.isPending}
-          onClick={() => actions.connect.mutate({ platform: p.id as Platform })}>Add {p.label} account</Button>)}
+          onClick={() => actions.connect.mutate({ platform: p.id as Platform, brandId: scope.brandId === ALL_BRANDS || scope.brandId === UNGROUPED ? null : scope.brandId })}><p.icon className="h-4 w-4" style={{ color: p.color }} />Add {p.label}</Button>)}
       </div>
 
       {!isLoading && !brandsLoading && (
@@ -239,7 +243,7 @@ export default function Accounts() {
             </Card>
           )}
 
-          {brands.map((brand) => (
+          {brands.filter((brand) => scope.brandId === ALL_BRANDS || brand.id === scope.brandId).map((brand) => (
             <BrandCard
               key={brand.id}
               brand={brand}
@@ -254,7 +258,7 @@ export default function Accounts() {
             />
           ))}
 
-          {unbranded.length > 0 && (
+          {unbranded.length > 0 && (scope.brandId === ALL_BRANDS || scope.brandId === UNGROUPED) && (
             <Card className="gap-0 overflow-hidden py-0">
               <div className="border-b bg-muted/30 px-4 py-3">
                 <h2 className="font-medium">Not in a brand</h2>

@@ -1,3 +1,5 @@
+import { useBrandScope } from "@/contexts/BrandContext";
+import { postBrandFilter } from "@/lib/brandScope";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
@@ -46,13 +48,15 @@ function pctChange(current: number, previous: number): number {
 
 export function useAnalytics(range: DateRange, platform?: Platform) {
   const { user } = useAuth();
+  const scope = useBrandScope();
 
   const query = useQuery({
-    queryKey: ["analytics", user?.id, range.from.toISOString(), range.to.toISOString(), platform],
+    queryKey: ["analytics", user?.id, scope.brandId, scope.accountIds, range.from.toISOString(), range.to.toISOString(), platform],
     queryFn: async () => {
       let q = supabase
         .from("sv_analytics_snapshots")
         .select("*")
+        .in("connected_account_id", scope.accountIds)
         .gte("metric_date", range.from.toISOString().slice(0, 10))
         .lte("metric_date", range.to.toISOString().slice(0, 10))
         .order("metric_date", { ascending: true })
@@ -66,7 +70,7 @@ export function useAnalytics(range: DateRange, platform?: Platform) {
       if (error) throw error;
       return data;
     },
-    enabled: Boolean(user?.id),
+    enabled: Boolean(user?.id) && scope.ready,
   });
 
   const aggregates = computeAggregates(query.data ?? []);
@@ -145,13 +149,15 @@ export function computeAggregates(snapshots: AnalyticsSnapshot[]): AnalyticsAggr
 // engagement_rate there. Real likes live per-post in sv_platform_posts.
 export function useTotalLikes(range: DateRange, platform?: Platform) {
   const { user } = useAuth();
+  const scope = useBrandScope();
 
   return useQuery({
-    queryKey: ["total-likes", user?.id, range.from.toISOString(), range.to.toISOString(), platform],
+    queryKey: ["total-likes", user?.id, scope.brandId, scope.accountIds, range.from.toISOString(), range.to.toISOString(), platform],
     queryFn: async () => {
       let q = supabase
         .from("sv_platform_posts")
         .select("likes_count")
+        .in("connected_account_id", scope.accountIds)
         .gte("posted_at", range.from.toISOString())
         .lte("posted_at", range.to.toISOString())
         .limit(5000);
@@ -161,7 +167,7 @@ export function useTotalLikes(range: DateRange, platform?: Platform) {
       if (error) throw error;
       return data.reduce((sum, p) => sum + p.likes_count, 0);
     },
-    enabled: Boolean(user?.id),
+    enabled: Boolean(user?.id) && scope.ready,
   });
 }
 
@@ -171,13 +177,15 @@ export function useTotalLikes(range: DateRange, platform?: Platform) {
 // when the real page has posted a lot this month. Count the real source.
 export function usePostCount(range: DateRange, platform?: Platform) {
   const { user } = useAuth();
+  const scope = useBrandScope();
 
   return useQuery({
-    queryKey: ["post-count", user?.id, range.from.toISOString(), range.to.toISOString(), platform],
+    queryKey: ["post-count", user?.id, scope.brandId, scope.accountIds, range.from.toISOString(), range.to.toISOString(), platform],
     queryFn: async () => {
       let q = supabase
         .from("sv_platform_posts")
         .select("*", { count: "exact", head: true })
+        .in("connected_account_id", scope.accountIds)
         .gte("posted_at", range.from.toISOString())
         .lte("posted_at", range.to.toISOString());
       if (platform) q = q.eq("platform", platform);
@@ -186,17 +194,18 @@ export function usePostCount(range: DateRange, platform?: Platform) {
       if (error) throw error;
       return count ?? 0;
     },
-    enabled: Boolean(user?.id),
+    enabled: Boolean(user?.id) && scope.ready,
   });
 }
 
 export function useTopPosts(range: DateRange, limit = 10) {
   const { user } = useAuth();
+  const scope = useBrandScope();
 
   return useQuery({
-    queryKey: ["top-posts", user?.id, range.from.toISOString(), range.to.toISOString(), limit],
+    queryKey: ["top-posts", user?.id, scope.brandId, scope.accountIds, range.from.toISOString(), range.to.toISOString(), limit],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("sv_posts")
         .select("*, sv_post_platform_results(*)")
         .eq("status", "published")
@@ -204,19 +213,23 @@ export function useTopPosts(range: DateRange, limit = 10) {
         .lte("published_at", range.to.toISOString())
         .order("published_at", { ascending: false })
         .limit(50);
+      const filter = postBrandFilter(scope.brandId, scope.accountIds);
+      if (filter) q = q.or(filter);
+      const { data, error } = await q;
       if (error) throw error;
 
       return [...data]
         .map((post) => {
-          const engagement = post.sv_post_platform_results.reduce((sum: number, r) => {
+          const results = post.sv_post_platform_results.filter((result) => result.connected_account_id !== null && scope.accountIds.includes(result.connected_account_id));
+          const engagement = results.reduce((sum: number, r) => {
             const data = r.engagement_data as Record<string, number> | null;
             return sum + (data?.likes ?? 0) + (data?.comments ?? 0) + (data?.shares ?? 0);
           }, 0);
-          return { post, engagement };
+          return { post: { ...post, sv_post_platform_results: results }, engagement };
         })
         .sort((a, b) => b.engagement - a.engagement)
         .slice(0, limit);
     },
-    enabled: Boolean(user?.id),
+    enabled: Boolean(user?.id) && scope.ready,
   });
 }

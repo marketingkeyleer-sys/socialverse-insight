@@ -2,12 +2,13 @@ import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from "recha
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getPlatformColor, getPlatformLabel } from "@/lib/platforms";
 import type { ConnectedAccount, Platform } from "@/types/database";
+import { platformFollowerTotals } from "@/lib/brandScope";
 
 export function PlatformBreakdown({ accounts }: { accounts: ConnectedAccount[] }) {
-  const data = accounts.map((a) => ({
-    name: getPlatformLabel(a.platform as Platform),
-    value: a.followers_count,
-    color: getPlatformColor(a.platform as Platform),
+  const data = [...platformFollowerTotals(accounts)].map(([platform, followers]) => ({
+    name: getPlatformLabel(platform as Platform),
+    value: followers,
+    color: getPlatformColor(platform as Platform),
   }));
 
   return (

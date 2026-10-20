@@ -27,6 +27,7 @@ import Analytics from "@/pages/Analytics";
 import Settings from "@/pages/Settings";
 import NotFound from "@/pages/NotFound";
 import Legal from "@/pages/Legal";
+import { BrandProvider } from "@/contexts/BrandContext";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -65,6 +66,7 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <AuthProvider>
+          <BrandProvider>
           <TooltipProvider>
             <BrowserRouter>
               <Routes>
@@ -102,6 +104,7 @@ export default function App() {
             </BrowserRouter>
             <Toaster />
           </TooltipProvider>
+          </BrandProvider>
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>

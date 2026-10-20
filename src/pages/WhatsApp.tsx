@@ -14,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { BridgeLinkPanel } from "@/components/whatsapp/BridgeLinkPanel";
-import { useConnectedAccounts } from "@/hooks/useConnectedAccounts";
+import { useScopedAccounts as useConnectedAccounts } from "@/contexts/BrandContext";
 import { NewBroadcastDialog } from "@/components/whatsapp/NewBroadcastDialog";
 import { useBridgeGroups, useWhatsAppBroadcasts, useWhatsAppContacts } from "@/hooks/useWhatsApp";
 import { parseContactLines } from "@/lib/whatsapp";

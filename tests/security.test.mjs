@@ -195,6 +195,30 @@ test('multiple accounts on one platform each receive exactly one post', async ()
   } finally { globalThis.fetch = originalFetch; }
 });
 
+test('actual publisher sends each platform its own caption and rejects cross-brand destinations', async () => {
+  const { encryptToken } = await import('../supabase/functions/_shared/crypto.ts');
+  const { publishPost } = await import('../supabase/functions/_shared/publish.ts');
+  const enc = await encryptToken('test-token');
+  const post = { id: 'brand-variants', user_id: 'A', brand_id: 'brand-A', status: 'draft', content: 'Never copy this brief', platforms: ['facebook', 'linkedin'], connected_account_ids: ['fb', 'li'], platform_content: {
+    facebook: { content: 'Facebook community caption', media_urls: [] }, linkedin: { content: 'LinkedIn professional caption', media_urls: [] },
+  } };
+  const tables = { sv_posts: [post], sv_connected_accounts: [
+    { id: 'fb', user_id: 'A', brand_id: 'brand-A', platform: 'facebook', platform_user_id: 'fb-page', is_active: true, page_access_token_ciphertext: enc.ciphertext, page_access_token_iv: enc.iv },
+    { id: 'li', user_id: 'A', brand_id: 'brand-A', platform: 'linkedin', platform_user_id: 'li-person', is_active: true, access_token_ciphertext: enc.ciphertext, token_iv: enc.iv },
+    { id: 'other-company', user_id: 'A', brand_id: 'brand-B', platform: 'facebook', is_active: true },
+  ] };
+  const originalFetch = globalThis.fetch;
+  const sends = [];
+  globalThis.fetch = async (url, init) => { sends.push({ url: String(url), body: init.body instanceof URLSearchParams ? Object.fromEntries(init.body) : JSON.parse(init.body) }); return Response.json({ id: 'remote-result' }, { headers: { 'x-restli-id': 'remote-linkedin' } }); };
+  try {
+    assert.equal((await publishPost(database(tables), 'A', { ...post })).overallStatus, 'published');
+    assert.equal(sends.find((send) => send.url.includes('facebook')).body.message, 'Facebook community caption');
+    assert.equal(sends.find((send) => send.url.includes('linkedin')).body.commentary, 'LinkedIn professional caption');
+    await assert.rejects(publishPost(database(tables), 'A', { ...post, id: 'foreign-target', connected_account_ids: ['other-company'] }), /selected account/);
+    assert.equal(sends.length, 2);
+  } finally { globalThis.fetch = originalFetch; }
+});
+
 test('network uncertainty is recorded and blocks unsafe resend', async () => {
   const { encryptToken } = await import('../supabase/functions/_shared/crypto.ts');
   const { publishPost } = await import('../supabase/functions/_shared/publish.ts');

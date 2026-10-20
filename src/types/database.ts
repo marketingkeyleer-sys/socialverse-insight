@@ -118,6 +118,8 @@ export interface Database {
         Row: {
           id: string;
           user_id: string;
+          brand_id: string | null;
+          platform_content: Partial<Record<Platform, { content: string; title?: string; media_urls?: string[] }>>;
           title: string | null;
           content: string;
           media_urls: string[] | null;

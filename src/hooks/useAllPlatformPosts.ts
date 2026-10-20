@@ -1,3 +1,4 @@
+import { useBrandScope } from "@/contexts/BrandContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
@@ -11,11 +12,12 @@ export type AllPlatformPost = PlatformPost & { publishedViaSocialVerse: boolean 
 // as usePlatformPosts, just joined across accounts instead of scoped to one.
 export function useAllPlatformPosts(platform?: Platform) {
   const { user } = useAuth();
+  const scope = useBrandScope();
 
   return useQuery<AllPlatformPost[]>({
-    queryKey: ["all-platform-posts", user?.id, platform],
+    queryKey: ["all-platform-posts", user?.id, scope.brandId, scope.accountIds, platform],
     queryFn: async () => {
-      let postsQuery = supabase.from("sv_platform_posts").select("*").order("posted_at", { ascending: false });
+      let postsQuery = supabase.from("sv_platform_posts").select("*").in("connected_account_id", scope.accountIds).order("posted_at", { ascending: false });
       if (platform) postsQuery = postsQuery.eq("platform", platform);
 
       const [postsRes, resultsRes] = await Promise.all([
@@ -23,6 +25,7 @@ export function useAllPlatformPosts(platform?: Platform) {
         supabase
           .from("sv_post_platform_results")
           .select("connected_account_id, platform_post_id")
+          .in("connected_account_id", scope.accountIds)
           .eq("status", "published")
           .not("platform_post_id", "is", null),
       ]);
@@ -37,6 +40,6 @@ export function useAllPlatformPosts(platform?: Platform) {
         publishedViaSocialVerse: viaSocialVerse.has(`${post.connected_account_id}:${post.platform_post_id}`),
       }));
     },
-    enabled: Boolean(user?.id),
+    enabled: Boolean(user?.id) && scope.ready,
   });
 }

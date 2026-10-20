@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { getPlatformColor, getPlatformIcon, getPlatformLabel } from "@/lib/platforms";
 import { cn, formatDate, getRelativeTime, truncateText } from "@/lib/utils";
-import { useConnectedAccounts } from "@/hooks/useConnectedAccounts";
+import { useScopedAccounts as useConnectedAccounts } from "@/contexts/BrandContext";
 import { useConversations, useMessages, useSendMessage, useInboxState } from "@/hooks/useInbox";
 import { Input } from "@/components/ui/input";
 import { InboxThreadTools } from "@/components/accounts/InboxThreadTools";
@@ -28,7 +28,7 @@ export default function InboxPage() {
   // Defaults to the first messaging-capable account until the user picks one
   // — derived during render instead of an effect+setState so there's no
   // extra render pass just to land on the same value.
-  const accountId = selectedAccountId ?? messagingAccounts[0]?.id;
+  const accountId = messagingAccounts.some((a) => a.id === selectedAccountId) ? selectedAccountId : messagingAccounts[0]?.id;
   const account = messagingAccounts.find((a) => a.id === accountId);
   const {
     data: conversations = [],

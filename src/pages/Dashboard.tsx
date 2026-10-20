@@ -15,7 +15,7 @@ import { PostDetailDialog } from "@/components/dashboard/PostDetailDialog";
 import { DayPostsSheet } from "@/components/dashboard/DayPostsSheet";
 import { RecentPosts } from "@/components/dashboard/RecentPosts";
 import { useAuth } from "@/hooks/useAuth";
-import { useConnectedAccounts } from "@/hooks/useConnectedAccounts";
+import { useScopedAccounts as useConnectedAccounts, useBrandScope } from "@/contexts/BrandContext";
 import { useAnalytics, useTotalLikes, usePostCount, last, thisMonth } from "@/hooks/useAnalytics";
 import { usePosts } from "@/hooks/usePosts";
 import { useUpcomingPosts } from "@/hooks/useUpcomingPosts";
@@ -23,8 +23,10 @@ import { useBestPost } from "@/hooks/useBestPost";
 import { usePostingActivity, buildActivityChartData, groupPostsByDate } from "@/hooks/usePostingActivity";
 import { formatNumber } from "@/lib/utils";
 import type { PlatformPost } from "@/types/database";
+import { BrandSummaryGrid } from "@/components/dashboard/BrandSummaryGrid";
 
 export default function Dashboard() {
+  const scope = useBrandScope();
   const { profile } = useAuth();
   const { data: accounts = [], isLoading: accountsLoading } = useConnectedAccounts();
   // A plain `const range = last(30)` re-runs `new Date()` on every render,
@@ -68,7 +70,7 @@ export default function Dashboard() {
           <Users className="h-8 w-8" />
         </span>
         <div>
-          <h1 className="text-xl font-semibold">Connect your first social account</h1>
+          <h1 className="text-xl font-semibold">{scope.brandName}: connect a social account</h1>
           <p className="mt-1 max-w-sm text-muted-foreground">
             Once you connect an account, your dashboard fills up with real analytics and post history.
           </p>
@@ -76,6 +78,7 @@ export default function Dashboard() {
         <Button asChild>
           <Link to="/accounts">Connect an account</Link>
         </Button>
+        <BrandSummaryGrid />
       </div>
     );
   }
@@ -86,12 +89,13 @@ export default function Dashboard() {
     <div className="mx-auto max-w-6xl space-y-6 p-4 md:p-6">
       <div
         className="relative overflow-hidden rounded-2xl p-6 text-white"
-        style={{ background: "linear-gradient(135deg, var(--chart-1), var(--chart-4))" }}
+        style={{ background: "linear-gradient(120deg, #103b43, #126d72)" }}
       >
         <div className="relative z-10 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Welcome back, {firstName}</h1>
-            <p className="mt-1 text-sm text-white/80">Here's every platform you manage, in one place — last 30 days.</p>
+            <p className="mb-2 text-xs font-medium uppercase tracking-widest text-white/70">Welcome back, {firstName}</p>
+            <h1 className="text-2xl font-semibold tracking-tight">{scope.brandName} dashboard</h1>
+            <p className="mt-2 text-sm text-white/80">Your channels, your content, your results. Performance over the last 30 days.</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button asChild size="sm" variant="secondary">
@@ -109,6 +113,8 @@ export default function Dashboard() {
         <div className="pointer-events-none absolute -bottom-16 right-24 h-32 w-32 rounded-full bg-white/10" />
       </div>
 
+      <BrandSummaryGrid />
+      <p className="text-xs text-muted-foreground">Workspace: <strong>{scope.brandName}</strong> · {accounts.length} channels. Audience totals sum platform counts; the same person may follow more than one channel.</p>
       {accountsLoading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
@@ -141,7 +147,7 @@ export default function Dashboard() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           <StatCard
             label="Total followers"
-            value={formatNumber(aggregates.totalFollowers)}
+            value={formatNumber(accounts.reduce((sum, account) => sum + account.followers_count, 0))}
             icon={UserPlus}
             changePct={aggregates.followersChangePct}
             color="var(--chart-1)"

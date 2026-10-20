@@ -4,26 +4,21 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/hooks/useTheme";
 import { APP_NAME, PLAN_LIMITS } from "@/lib/constants";
-import { PLATFORM_CONFIGS } from "@/lib/platforms";
+import { PLATFORM_CONFIGS, PLATFORM_DETAILS } from "@/lib/platforms";
 
 const FEATURES = [
-  { icon: Layers, title: "Multi-platform posting", description: "Compose once, publish everywhere — Facebook, Instagram, YouTube, and LinkedIn, all from a single editor." },
-  { icon: BarChart3, title: "Analytics dashboard", description: "Followers, reach, engagement, and top posts, unified across every channel you manage." },
+  { icon: Layers, title: "A voice for every platform", description: "Tailor captions and media to each channel, with a separate preview before publishing." },
+  { icon: BarChart3, title: "Clarity for every company", description: "Keep followers, performance and content in the right brand workspace." },
   { icon: Clock, title: "Schedule & automate", description: "Queue up content ahead of time and let it publish itself, right down to the minute." },
-  { icon: Users, title: "Built for teams", description: "Invite teammates, assign roles, and keep everyone posting from the same source of truth." },
+  { icon: Users, title: "Multiple brands, organized", description: "Switch between companies without mixing their channels, posts or audience counts." },
 ];
 
 const STEPS = [
   { number: "01", title: "Sign up", description: "Create your free account in under a minute — no credit card required." },
-  { number: "02", title: "Connect your accounts", description: "Link Facebook, Instagram, YouTube, and LinkedIn in a couple of clicks." },
-  { number: "03", title: "Start posting", description: "Compose, schedule, and track performance from one clean dashboard." },
+  { number: "02", title: "Create a brand workspace", description: "Give each company its own space and connect the accounts you are authorized to manage." },
+  { number: "03", title: "Create with purpose", description: "Choose a brand, tailor each platform's content, and track its own results." },
 ];
 
-const TESTIMONIALS = [
-  { quote: "We replaced three separate tools with SocialVerse. Our team finally has one place to plan and post.", name: "Maya R.", role: "Marketing Lead" },
-  { quote: "Scheduling used to eat my whole Monday. Now it takes fifteen minutes.", name: "Devon K.", role: "Freelance Creator" },
-  { quote: "The analytics view is the first dashboard our whole team actually opens every week.", name: "Priya S.", role: "Social Media Manager" },
-];
 
 export default function Landing() {
   const { theme, toggleTheme } = useTheme();
@@ -33,9 +28,7 @@ export default function Landing() {
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 md:px-6">
-          <Link to="/" className="text-lg font-semibold tracking-tight hover:opacity-80">
-            {APP_NAME}
-          </Link>
+          <Link to="/" className="hover:opacity-80"><span className="text-lg font-bold tracking-tight">{APP_NAME}<span className="text-primary">.</span></span><span className="hidden text-[10px] tracking-wide text-muted-foreground sm:block">A workspace for every brand</span></Link>
 
           <nav className="hidden items-center gap-6 text-sm font-medium text-muted-foreground md:flex">
             <a href="#features" className="hover:text-foreground">Features</a>
@@ -69,14 +62,13 @@ export default function Landing() {
       </header>
 
       {/* Hero */}
-      <section className="relative overflow-hidden px-4 py-20 md:px-6 md:py-28">
+      <section className="relative overflow-hidden bg-gradient-to-b from-primary/5 to-background px-4 py-20 md:px-6 md:py-24">
         <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_50%_0%,theme(colors.primary/12%),transparent_60%)]" />
         <div className="mx-auto max-w-3xl text-center">
-          <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl md:text-6xl">
-            Manage all your social media in one place
-          </h1>
+          <p className="mb-6 inline-flex rounded-full border border-primary/20 bg-primary/5 px-4 py-2 text-xs font-semibold tracking-widest text-primary">YOUR BRANDS. BEAUTIFULLY ORGANIZED.</p>
+          <h1 className="text-4xl font-semibold leading-[1.12] tracking-tight sm:text-5xl md:text-6xl">Every brand has a voice.<br /><span className="text-primary">Give yours room to grow.</span></h1>
           <p className="mx-auto mt-5 max-w-xl text-lg text-muted-foreground">
-            Schedule posts, track analytics, and grow your audience — one dashboard for Facebook, Instagram, YouTube & LinkedIn.
+            Separate workspaces for every company. Thoughtful content for every platform. Clear insights from the channels you actually manage.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <Button size="lg" asChild>
@@ -86,13 +78,12 @@ export default function Landing() {
               <a href="#how-it-works">See how it works</a>
             </Button>
           </div>
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
+          <div className="mt-12 grid gap-3 text-left sm:grid-cols-2 lg:grid-cols-3" aria-label="Social platform integrations">
             {PLATFORM_CONFIGS.map((p) => (
-              <span key={p.id} className="grid h-10 w-10 place-items-center rounded-xl text-white" style={{ backgroundColor: p.color }}>
-                <p.icon className="h-5 w-5" />
-              </span>
+              <a key={p.id} href={PLATFORM_DETAILS[p.id].website} target="_blank" rel="noreferrer" aria-label={`Visit ${p.label}`} className="rounded-2xl border bg-card p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"><span className="grid h-10 w-10 place-items-center rounded-xl text-white" style={{ backgroundColor: p.id === "instagram" ? undefined : p.color, backgroundImage: p.id === "instagram" ? "linear-gradient(135deg,#f9ce34,#ee2a7b,#6228d7)" : undefined }}><p.icon className="h-5 w-5" /></span><span className="mt-3 block text-sm font-semibold">{p.label}</span><span className="mt-1 block text-xs leading-relaxed text-muted-foreground">{PLATFORM_DETAILS[p.id].caption}</span></a>
             ))}
           </div>
+          <p className="mt-5 text-xs text-muted-foreground">Connect accounts you own or manage. Available features depend on each platform's permissions.</p>
         </div>
       </section>
 
@@ -163,7 +154,7 @@ export default function Landing() {
                     ))}
                   </ul>
                   <Button asChild className="mt-6 w-full" variant={tier === "pro" ? "default" : "outline"}>
-                    <Link to="/signup">{tier === "free" ? "Start free" : tier === "pro" ? "Start 14-day trial" : "Talk to sales"}</Link>
+                    <Link to="/signup">{tier === "free" ? "Start free" : tier === "pro" ? "Choose Pro" : "Choose Business"}</Link>
                   </Button>
                 </div>
               ),
@@ -172,22 +163,11 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="border-t bg-muted/30 px-4 py-20 md:px-6">
-        <div className="mx-auto max-w-6xl grid gap-6 sm:grid-cols-3">
-          {TESTIMONIALS.map((t) => (
-            <div key={t.name} className="rounded-2xl border bg-card p-6">
-              <p className="text-sm">"{t.quote}"</p>
-              <p className="mt-4 text-sm font-medium">{t.name}</p>
-              <p className="text-xs text-muted-foreground">{t.role}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+      <section className="border-y bg-primary/5 px-4 py-14 md:px-6"><div className="mx-auto grid max-w-6xl gap-7 md:grid-cols-3"><div><p className="text-xs font-semibold uppercase tracking-widest text-primary">01 / Organize</p><h2 className="mt-3 text-xl font-semibold">One company, one workspace</h2><p className="mt-2 text-sm text-muted-foreground">A brand is your company or client. Its connected accounts stay together.</p></div><div><p className="text-xs font-semibold uppercase tracking-widest text-primary">02 / Create</p><h2 className="mt-3 text-xl font-semibold">Content that fits the channel</h2><p className="mt-2 text-sm text-muted-foreground">A LinkedIn update and an Instagram story deserve different words and media.</p></div><div><p className="text-xs font-semibold uppercase tracking-widest text-primary">03 / Understand</p><h2 className="mt-3 text-xl font-semibold">Real data, clearly presented</h2><p className="mt-2 text-sm text-muted-foreground">See each channel's followers, recent activity and available analytics separately.</p></div></div></section>
 
       {/* Final CTA */}
       <section className="border-t px-4 py-20 text-center md:px-6">
-        <h2 className="text-3xl font-semibold tracking-tight">Ready to bring every channel into one view?</h2>
+        <h2 className="text-3xl font-semibold tracking-tight">Ready to give every brand its own space?</h2>
         <p className="mx-auto mt-2 max-w-md text-muted-foreground">Free forever for solo creators — no credit card required.</p>
         <Button size="lg" asChild className="mt-6">
           <Link to="/signup">Get started free</Link>

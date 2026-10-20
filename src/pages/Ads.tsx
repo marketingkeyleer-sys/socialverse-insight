@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { NewCampaignDialog } from "@/components/ads/NewCampaignDialog";
-import { useConnectedAccounts } from "@/hooks/useConnectedAccounts";
+import { useScopedAccounts as useConnectedAccounts } from "@/contexts/BrandContext";
 import {
   useAdAccounts,
   useAdCampaigns,

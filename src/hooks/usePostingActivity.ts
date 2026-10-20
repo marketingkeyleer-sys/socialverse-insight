@@ -1,3 +1,4 @@
+import { useBrandScope } from "@/contexts/BrandContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
@@ -24,13 +25,15 @@ export interface PostingActivityDay {
 // the same data.
 export function usePostingActivity(range: DateRange) {
   const { user } = useAuth();
+  const scope = useBrandScope();
 
   return useQuery({
-    queryKey: ["posting-activity", user?.id, range.from.toISOString(), range.to.toISOString()],
+    queryKey: ["posting-activity", user?.id, scope.brandId, scope.accountIds, range.from.toISOString(), range.to.toISOString()],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("sv_platform_posts")
         .select("*")
+        .in("connected_account_id", scope.accountIds)
         .gte("posted_at", range.from.toISOString())
         .lte("posted_at", range.to.toISOString())
         .order("posted_at", { ascending: true })
@@ -38,7 +41,7 @@ export function usePostingActivity(range: DateRange) {
       if (error) throw error;
       return data;
     },
-    enabled: Boolean(user?.id),
+    enabled: Boolean(user?.id) && scope.ready,
   });
 }
 

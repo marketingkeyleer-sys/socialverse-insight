@@ -36,7 +36,7 @@ export function NotificationsBell() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-80 p-0">
-        <div className="border-b px-3 py-2 text-sm font-medium">Activity</div>
+        <div className="border-b px-3 py-2 text-sm font-medium">Account activity · all brands</div>
         {recent.isLoading ? (
           <p className="px-3 py-6 text-center text-sm text-muted-foreground">Loading…</p>
         ) : entries.length === 0 ? (

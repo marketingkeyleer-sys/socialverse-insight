@@ -105,6 +105,7 @@ export default function PostDetail() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          {Object.entries(post.platform_content ?? {}).map(([platform, draft]) => draft && <section key={platform} className="rounded-xl border p-4"><h2 className="text-sm font-semibold">{getPlatformLabel(platform as Platform)} version</h2>{draft.title && <p className="mt-2 font-medium">{draft.title}</p>}<p className="mt-2 whitespace-pre-wrap text-sm">{draft.content}</p><div className="mt-3 grid grid-cols-2 gap-2">{draft.media_urls?.map((url) => /\.(mp4|mov)(?:\?|$)/i.test(url) ? <video key={url} src={url} controls className="rounded-lg" /> : <img key={url} src={url} alt={`${getPlatformLabel(platform as Platform)} attachment`} className="rounded-lg" />)}</div></section>)}
           <p className="whitespace-pre-wrap text-sm">{post.content}</p>
           {post.media_urls && post.media_urls.length > 0 && (
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -183,7 +184,7 @@ export default function PostDetail() {
                 </TableHeader>
                 <TableBody>
                   {post.sv_post_platform_results.map((result) => {
-                    const live = result.platform_post_id ? liveAnalytics?.get(result.platform_post_id) : undefined;
+                    const live = result.platform_post_id ? liveAnalytics?.get(`${result.connected_account_id}:${result.platform_post_id}`) : undefined;
                     return (
                       <TableRow key={result.id}>
                         <TableCell>{getPlatformLabel(result.platform as Platform)}</TableCell>

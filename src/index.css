@@ -2,12 +2,13 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
+@import "@fontsource-variable/manrope";
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-    --font-heading: var(--font-sans);
-    --font-sans: 'Geist Variable', sans-serif;
+    --font-heading: 'Manrope Variable', sans-serif;
+    --font-sans: 'Manrope Variable', 'Geist Variable', sans-serif;
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -48,56 +49,50 @@
     --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/*
- * Nova's default palette is intentionally all-gray (every token below had
- * zero chroma) — this is the actual brand color system: a violet/indigo
- * primary plus a five-hue chart ramp, replacing gray-on-gray everywhere
- * --primary, --chart-*, and --sidebar-primary are used (buttons, active nav,
- * focus rings, every chart) in one place instead of touching each component.
- */
+/* Teal brand accents with separate analytical series and light/dark contrast. */
 :root {
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
+    --background: oklch(0.982 0.006 220);
+    --foreground: oklch(0.24 0.035 245);
     --card: oklch(1 0 0);
     --card-foreground: oklch(0.145 0 0);
     --popover: oklch(1 0 0);
     --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.547 0.214 265.5);
+    --primary: oklch(0.46 0.095 195);
     --primary-foreground: oklch(0.985 0 0);
     --secondary: oklch(0.97 0 0);
     --secondary-foreground: oklch(0.205 0 0);
     --muted: oklch(0.97 0 0);
     --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.94 0.03 265.5);
-    --accent-foreground: oklch(0.35 0.15 265.5);
+    --accent: oklch(0.94 0.025 195);
+    --accent-foreground: oklch(0.35 0.08 195);
     --destructive: oklch(0.577 0.245 27.325);
     --border: oklch(0.922 0 0);
     --input: oklch(0.922 0 0);
-    --ring: oklch(0.547 0.214 265.5);
-    --chart-1: oklch(0.547 0.214 265.5);
-    --chart-2: oklch(0.7 0.15 200);
-    --chart-3: oklch(0.75 0.16 70);
-    --chart-4: oklch(0.65 0.2 15);
-    --chart-5: oklch(0.65 0.15 155);
-    --radius: 0.625rem;
+    --ring: oklch(0.46 0.095 195);
+    --chart-1: #168a83;
+    --chart-2: #476fdb;
+    --chart-3: #c78a16;
+    --chart-4: #b85b9b;
+    --chart-5: #dc6b45;
+    --radius: 0.85rem;
     --sidebar: oklch(0.985 0 0);
     --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.547 0.214 265.5);
+    --sidebar-primary: oklch(0.46 0.095 195);
     --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.94 0.03 265.5);
-    --sidebar-accent-foreground: oklch(0.35 0.15 265.5);
+    --sidebar-accent: oklch(0.94 0.025 195);
+    --sidebar-accent-foreground: oklch(0.35 0.08 195);
     --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.547 0.214 265.5);
+    --sidebar-ring: oklch(0.46 0.095 195);
 }
 
 .dark {
-    --background: oklch(0.145 0 0);
+    --background: oklch(0.18 0.02 240);
     --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
+    --card: oklch(0.23 0.025 240);
     --card-foreground: oklch(0.985 0 0);
     --popover: oklch(0.205 0 0);
     --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.68 0.19 265.5);
+    --primary: oklch(0.77 0.12 185);
     --primary-foreground: oklch(0.145 0 0);
     --secondary: oklch(0.269 0 0);
     --secondary-foreground: oklch(0.985 0 0);
@@ -109,14 +104,14 @@
     --border: oklch(1 0 0 / 10%);
     --input: oklch(1 0 0 / 15%);
     --ring: oklch(0.68 0.19 265.5);
-    --chart-1: oklch(0.68 0.19 265.5);
-    --chart-2: oklch(0.75 0.13 200);
-    --chart-3: oklch(0.8 0.14 70);
-    --chart-4: oklch(0.7 0.18 15);
-    --chart-5: oklch(0.7 0.14 155);
-    --sidebar: oklch(0.205 0 0);
+    --chart-1: #58c8bf;
+    --chart-2: #85a4ff;
+    --chart-3: #f2c45e;
+    --chart-4: #e395ca;
+    --chart-5: #f29b78;
+    --sidebar: oklch(0.21 0.025 240);
     --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.68 0.19 265.5);
+    --sidebar-primary: oklch(0.77 0.12 185);
     --sidebar-primary-foreground: oklch(0.145 0 0);
     --sidebar-accent: oklch(0.3 0.08 265.5);
     --sidebar-accent-foreground: oklch(0.9 0.06 265.5);
@@ -134,4 +129,9 @@
   html {
     @apply font-sans;
     }
+}
+@layer base {
+  h1, h2, h3 { font-family: var(--font-heading); letter-spacing: -0.025em; }
+  button, a, select { -webkit-tap-highlight-color: transparent; }
+  :focus-visible { outline: 2px solid var(--ring); outline-offset: 3px; }
 }
