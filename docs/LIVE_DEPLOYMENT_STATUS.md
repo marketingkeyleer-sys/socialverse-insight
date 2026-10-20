@@ -2,6 +2,19 @@
 
 ## Brand/account save investigation
 
+### YouTube channel chooser follow-up
+
+The user reported a generic Google HTTP 400 on its `/signin/oauth/delegation`
+page when choosing another channel. This occurs at Google authorization,
+before the application can save a channel; the exact upstream cause remains
+unconfirmed without a successful retry. YouTube authorization now explicitly
+requests `select_account consent`, retains offline access and S256 PKCE, and
+sets `include_granted_scopes=false` to avoid combining unrelated prior Google
+grants with channel authorization. The OAuth-start regression checks the
+generated URL and the selected application's brand binding. Existing channel
+records and credentials are not modified by this change. Start a fresh Connect
+request rather than reusing a session-specific Google delegation URL.
+
 A supplied Lovable editor screenshot reported `Could not find the table
 'public.sv_brands' in the schema cache`. The existing application project
 contains that table, and a direct PostgREST probe of `sv_brands` with the app's

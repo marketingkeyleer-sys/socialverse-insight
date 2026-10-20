@@ -208,7 +208,9 @@ export const PROVIDERS: Record<PlatformId, ProviderConfig> = {
     tokenUrl: "https://oauth2.googleapis.com/token",
     scopes: "https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/yt-analytics.readonly https://www.googleapis.com/auth/youtube.upload",
     pkce: true,
-    extraAuthParams: { access_type: "offline", prompt: "consent", include_granted_scopes: "true" },
+    // Keep channel authorization separate from earlier Google sign-in grants.
+    // A new connection must let the owner choose a different Google identity.
+    extraAuthParams: { access_type: "offline", prompt: "select_account consent", include_granted_scopes: "false" },
     clientIdEnv: "GOOGLE_CLIENT_ID",
     clientSecretEnv: "GOOGLE_CLIENT_SECRET",
     userInfo: async (token) => {

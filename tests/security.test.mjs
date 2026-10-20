@@ -101,6 +101,19 @@ test('OAuth start binds both users to distinct states; rejects foreign brand and
   }
   assert.notEqual(tables.sv_oauth_states[0].state, tables.sv_oauth_states[1].state);
   owner = 'A';
+  env.set('GOOGLE_CLIENT_ID', 'google-client');
+  env.set('GOOGLE_CLIENT_SECRET', 'google-secret');
+  tables.sv_brands.push({ id: 'brand-A', user_id: 'A' });
+  const youtubeResponse = await start(postRequest({ platform: 'youtube', brandId: 'brand-A', redirectTo: 'https://app.example.com/accounts' }));
+  assert.equal(youtubeResponse.status, 200);
+  const youtubeUrl = new URL((await youtubeResponse.json()).authorizeUrl);
+  assert.equal(youtubeUrl.searchParams.get('prompt'), 'select_account consent');
+  assert.equal(youtubeUrl.searchParams.get('include_granted_scopes'), 'false');
+  assert.equal(youtubeUrl.searchParams.get('access_type'), 'offline');
+  assert.equal(youtubeUrl.searchParams.get('code_challenge_method'), 'S256');
+  assert.equal(youtubeUrl.searchParams.get('redirect_uri'), 'https://example.supabase.co/functions/v1/oauth-callback/youtube');
+  assert.equal(tables.sv_oauth_states.at(-1).brand_id, 'brand-A');
+  assert.ok(youtubeUrl.searchParams.get('scope').split(' ').every((scope) => /^https:\/\/www\.googleapis\.com\/auth\/(youtube\.|yt-analytics\.)/.test(scope)));
   assert.equal((await start(postRequest({ platform: 'facebook', brandId: 'brand-B' }))).status, 400);
   assert.equal((await start(postRequest({ platform: 'facebook', redirectTo: 'https://evil.example' }))).status, 400);
   owner = null;
