@@ -13,7 +13,7 @@ The existing Meta OAuth integration supports Facebook Pages and Instagram Busine
 
 ## Public availability
 
-Credentials being configured does not establish that an app is approved to serve every customer. The Meta app's Live mode, permissions/access levels and any verification/review requirements must be checked in its developer dashboard. That dashboard was signed out during this implementation; customer-wide access is not verified or represented as enabled. Required access and review decisions are controlled by Meta.
+Credentials being configured does not establish that an app is approved to serve every customer. Live inspection subsequently confirmed that the deployed OAuth flow uses Dhivya app 975939348747280, which is Published and connected to the verified Keyleerkart business portfolio. Its permission review is Not submitted, with allowed-usage evidence incomplete. Customer-wide permission access is not represented as approved. See META_REVIEW_PACKET.md for verified app identities, policy updates and preparation notes. Required access and review decisions are controlled by Meta.
 
 The current Instagram route uses Facebook Login and requires a linked Page. Instagram Login without a Page is a separate integration and has not been added or advertised.
 
@@ -25,4 +25,4 @@ Meta developer dashboard: https://developers.facebook.com/apps/
 
 ## Verification
 
-Production build passed and lint reported no errors (existing warnings and the icon lookup warning remain). Browser control timed out during publication preparation, so live UI verification of this update is pending. No external account was authorized or connected as a test.
+Production build passed and lint reported no errors (existing warnings and the icon lookup warning remain). The update was published through Lovable and the public bundle verified. The live Facebook Page dialog and Instagram personal-account setup were checked. Starting the Instagram authorization flow confirmed the production Meta client ID; the provider consent step was not approved and no external account was saved as a test.
