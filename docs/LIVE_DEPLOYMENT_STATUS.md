@@ -15,10 +15,10 @@ duplicate platform rejection, foreign-brand rejection, tenant isolation and
 preservation of accounts when deleting a temporary brand. No test users,
 brands, accounts or token values were committed.
 
-The reported missing-table error is not reproduced on the verified project's
-API. A Lovable preview pointing at another Cloud project is the likely cause;
-the exact preview `VITE_SUPABASE_URL` was requested to confirm it. A schema-cache
-refresh was also requested as a non-destructive precaution.
+The latest Lovable GitHub commit confirmed the mismatch: `.env` had been changed
+to project `rylyjpvzquaarktmbiyt` instead of the existing application project
+`igdbgaroizwqaphdhimd`. The missing-table error is not reproduced on the correct
+project's API. Its schema cache was also refreshed as a non-destructive precaution.
 
 The shared app client now defaults to the existing project defined in
 `src/lib/supabaseProject.ts`, using only its public anon key. Lovable-injected
@@ -28,7 +28,16 @@ use a different local/staging backend, set
 `VITE_SOCIALVERSE_USE_ENV_CONFIG=true` along with its public URL and client key.
 No duplicate tables or data were created in another project.
 
-All 22 offline regression/configuration tests passed for this correction.
+All 27 offline regression/configuration/navigation tests passed.
+Additional navigation checks cover preview authorization completing on the
+approved production origin and preserving the pending confirmation query when
+email or Google login is required. No preview domains were added to the OAuth
+allowlist.
+`scripts/check-frontend-database.mjs` additionally checks the resolved frontend
+connection against the real API without returning rows or printing keys.
+It passed with the mismatched Lovable environment: the resolved project was
+`igdbgaroizwqaphdhimd` and all five table requests returned HTTP 200. The final
+production build passed; lint reported existing warnings with no errors.
 
 Existing account failure logs separately show revoked/expired Google refresh
 grants; those YouTube connections require reauthorization. They are sync errors,
@@ -122,11 +131,8 @@ and the production origin plus localhost/127.0.0.1 port 5173 were allowed.
 The Lovable editor requires login in the available browser, so its Publish
 control was not accessible during this fix.
 
-The current server-configured return origin is `http://localhost:5173`.
-The user has not yet supplied a frontend hosting destination/project.
-Once supplied, deploy `dist/`, configure SPA routing and public Supabase
-environment values, and update `APP_URL`, allowed origins, and Auth redirect
-URLs for that specific host. Do not change the destination by guessing.
+The server-configured return origin is `https://socialverse-insight.lovable.app`.
+The production destination is the user's existing Lovable project.
 
 Provider app review/permissions, real two-user account consent, and the broader
 unfinished product features listed in `AUDIT_AND_DEPLOYMENT.md` still require

@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/hooks/useAuth";
 import { APP_NAME } from "@/lib/constants";
+import { loginReturnPath } from "@/lib/oauthNavigation";
 
 export default function Login() {
   const { signIn, signInWithGoogle } = useAuth();
@@ -18,7 +19,7 @@ export default function Login() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const from = (location.state as { from?: { pathname: string } } | null)?.from?.pathname ?? "/dashboard";
+  const from = loginReturnPath((location.state as { from?: { pathname: string; search?: string } } | null)?.from);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -44,7 +45,7 @@ export default function Login() {
           <CardDescription>Sign in to manage your social accounts</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Button variant="outline" className="w-full" onClick={() => void signInWithGoogle()} type="button">
+          <Button variant="outline" className="w-full" onClick={() => void signInWithGoogle(from)} type="button">
             Continue with Google
           </Button>
 

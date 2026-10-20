@@ -5,6 +5,8 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { getPlatformLabel } from "@/lib/platforms";
 import type { Platform } from "@/types/database";
+import { accountReturnUrl } from "@/lib/oauthNavigation";
+import { supabaseProject } from "@/lib/supabaseProject";
 
 async function functionErrorMessage(error: unknown, fallback: string): Promise<string> {
   if (error instanceof FunctionsHttpError) {
@@ -43,7 +45,7 @@ export function useConnectedAccounts() {
     mutationFn: async ({ platform, brandId }: { platform: Platform; brandId?: string | null }) => {
       const { data, error } = await supabase.functions.invoke<{ authorizeUrl?: string; error?: string }>(
         "oauth-start",
-        { body: { platform, brandId: brandId ?? null, origin: window.location.origin, redirectTo: window.location.href } },
+        { body: { platform, brandId: brandId ?? null, origin: window.location.origin, redirectTo: accountReturnUrl(window.location.href, supabaseProject.appUrl) } },
       );
       if (error) throw new Error(await functionErrorMessage(error, "Could not start connection"));
       if (!data?.authorizeUrl) throw new Error(data?.error || "Could not start connection");
