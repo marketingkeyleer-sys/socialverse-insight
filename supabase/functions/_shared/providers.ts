@@ -254,12 +254,16 @@ export const PROVIDERS: Record<PlatformId, ProviderConfig> = {
   },
 };
 
-export function getProvider(id: string): ProviderConfig {
+export function getProvider(id: string, options: { preserveMetaPermissions?: boolean } = {}): ProviderConfig {
   const p = Object.hasOwn(PROVIDERS, id) ? PROVIDERS[id as PlatformId] : undefined;
   if (!p) throw new Error(`Unknown platform: ${id}`);
-  const prefix = id === "facebook" || id === "instagram" ? "META" : id.toUpperCase();
+  const meta = id === "facebook" || id === "instagram";
   const scopes = Deno.env.get(`${id.toUpperCase()}_OAUTH_SCOPES`) ?? p.scopes;
-  const configId = prefix === "META" ? Deno.env.get("META_LOGIN_CONFIG_ID") : undefined;
+  // Basic account connection should not inherit unrelated advertising or
+  // messaging requirements from a shared configuration. Retain the legacy
+  // fallback for installations that have not created per-platform configs.
+  const legacyConfig = meta ? Deno.env.get("META_LOGIN_CONFIG_ID")?.trim() : undefined;
+  const configId = meta ? options.preserveMetaPermissions ? legacyConfig : Deno.env.get(`${id.toUpperCase()}_LOGIN_CONFIG_ID`)?.trim() || legacyConfig : undefined;
   return { ...p, scopes, extraAuthParams: { ...p.extraAuthParams, ...(configId ? { config_id: configId } : {}) } };
 }
 

@@ -5,7 +5,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { callbackUrl, getProvider, getProviderCreds, type PlatformId } from "../_shared/providers.ts";
 import { encryptToken } from "../_shared/crypto.ts";
-import { grantedScopes, safeRedirect } from "../_shared/oauth-policy.ts";
+import { grantedScopes, metaConnectionError, safeRedirect } from "../_shared/oauth-policy.ts";
 
 function redirect(to: string, params: Record<string, string>) {
   const url = new URL(to);
@@ -38,7 +38,10 @@ Deno.serve(async (req) => {
   }
 
   if (providerError) {
-    return redirect(redirectTo, { connect_error: providerError, platform });
+    const message = platform === "facebook" || platform === "instagram"
+      ? metaConnectionError(url.searchParams.get("error"), url.searchParams.get("error_reason"))
+      : providerError;
+    return redirect(redirectTo, { connect_error: message, platform });
   }
   if (!code || !state || !stateRow) {
     return redirect(redirectTo, { connect_error: "Invalid or expired connection request. Please try again.", platform });

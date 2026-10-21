@@ -29,7 +29,18 @@ Deno.serve(async (req) => {
     const appUrl = Deno.env.get("APP_URL");
     if (!appUrl) throw new Error("APP_URL must be configured on the server");
     const returnUrl = safeRedirect(redirectTo, appUrl, Deno.env.get("OAUTH_ALLOWED_ORIGINS"));
-    const provider = getProvider(platform);
+    let provider = getProvider(platform);
+    if (platform === "facebook" || platform === "instagram") {
+      // Reconnecting an existing publishing/inbox account must not silently
+      // replace its broader consent with connection-only consent. This read
+      // uses the signed-in user's client and explicit ownership filtering.
+      const { data: accounts, error: accountError } = await userClient.from("sv_connected_accounts")
+        .select("brand_id,scopes").eq("user_id", userData.user.id).eq("platform", platform);
+      const basicScopes = new Set(["public_profile", "pages_show_list", "pages_read_engagement", "instagram_basic"]);
+      const needsExistingPermissions = accounts?.some((account: { brand_id: string | null; scopes: string[] | null }) =>
+        account.brand_id === (brandId ?? null) && account.scopes?.some(scope => !basicScopes.has(scope)));
+      if (accountError || needsExistingPermissions) provider = getProvider(platform, { preserveMetaPermissions: true });
+    }
     const { clientId } = getProviderCreds(provider);
     const redirectUri = callbackUrl(supabaseUrl, provider.id);
 

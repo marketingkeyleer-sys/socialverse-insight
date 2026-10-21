@@ -116,6 +116,19 @@ test('OAuth start binds both users to distinct states; rejects foreign brand and
   assert.ok(youtubeUrl.searchParams.get('scope').split(' ').every((scope) => /^https:\/\/www\.googleapis\.com\/auth\/(youtube\.|yt-analytics\.)/.test(scope)));
   assert.equal((await start(postRequest({ platform: 'facebook', brandId: 'brand-B' }))).status, 400);
   assert.equal((await start(postRequest({ platform: 'facebook', redirectTo: 'https://evil.example' }))).status, 400);
+  env.set('META_LOGIN_CONFIG_ID', 'legacy-features');
+  env.set('FACEBOOK_LOGIN_CONFIG_ID', 'basic-connect');
+  tables.sv_connected_accounts = [
+    { user_id: 'A', platform: 'facebook', brand_id: 'brand-A', scopes: ['pages_show_list', 'pages_manage_posts'] },
+    { user_id: 'B', platform: 'facebook', brand_id: null, scopes: ['ads_management'] },
+  ];
+  for (const [brandId, expected] of [['brand-A', 'legacy-features'], [null, 'basic-connect']]) {
+    const response = await start(postRequest({ platform: 'facebook', brandId, redirectTo: 'https://app.example.com/accounts' }));
+    assert.equal(response.status, 200);
+    assert.equal(new URL((await response.json()).authorizeUrl).searchParams.get('config_id'), expected);
+  }
+  env.delete('META_LOGIN_CONFIG_ID');
+  env.delete('FACEBOOK_LOGIN_CONFIG_ID');
   owner = null;
   assert.equal((await start(postRequest({ platform: 'facebook' }))).status, 401);
 });

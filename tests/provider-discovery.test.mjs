@@ -1,6 +1,31 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { PROVIDERS } from '../supabase/functions/_shared/providers.ts';
+import { PROVIDERS, getProvider } from '../supabase/functions/_shared/providers.ts';
+import { metaConnectionError } from '../supabase/functions/_shared/oauth-policy.ts';
+
+test('Meta denial explains both user consent and app-review restrictions instead of promising retry fixes', () => {
+  const denial = metaConnectionError('access_denied', null);
+  assert.match(denial, /If you cancelled/);
+  assert.match(denial, /complete Meta App Review/);
+  assert.match(metaConnectionError('temporarily_unavailable', null), /wait a few minutes/);
+  assert.match(metaConnectionError('invalid_request', null), /callback URL/);
+});
+
+test('Meta connection configs are isolated by platform with a backwards-compatible fallback', (t) => {
+  const config = new Map([['META_LOGIN_CONFIG_ID', 'legacy'], ['FACEBOOK_LOGIN_CONFIG_ID', 'facebook-connect'], ['INSTAGRAM_LOGIN_CONFIG_ID', 'instagram-connect']]);
+  const previousDeno = globalThis.Deno;
+  globalThis.Deno = { env: { get: key => config.get(key) } };
+  t.after(() => { if (previousDeno === undefined) delete globalThis.Deno; else globalThis.Deno = previousDeno; });
+  assert.equal(getProvider('facebook').extraAuthParams.config_id, 'facebook-connect');
+  assert.equal(getProvider('instagram').extraAuthParams.config_id, 'instagram-connect');
+  assert.equal(getProvider('instagram', { preserveMetaPermissions: true }).extraAuthParams.config_id, 'legacy');
+  assert.equal(getProvider('youtube').extraAuthParams.config_id, undefined);
+  config.set('FACEBOOK_LOGIN_CONFIG_ID', '  ');
+  assert.equal(getProvider('facebook').extraAuthParams.config_id, 'legacy');
+  assert.equal(getProvider('instagram').extraAuthParams.config_id, 'instagram-connect');
+  config.delete('META_LOGIN_CONFIG_ID');
+  assert.equal(getProvider('facebook').extraAuthParams.config_id, undefined);
+});
 
 test('YouTube discovery keeps all authorized channels across pages without duplicates', async (t) => {
   const calls = [];
