@@ -6,6 +6,7 @@ import { corsHeaders } from "../_shared/cors.ts";
 import { callbackUrl, getProvider, getProviderCreds } from "../_shared/providers.ts";
 import { pkceChallenge, randomString } from "../_shared/crypto.ts";
 import { safeRedirect } from "../_shared/oauth-policy.ts";
+import { uploadPostBinding, uploadPostConnectionRow } from "../_shared/uploadpost.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -29,6 +30,25 @@ Deno.serve(async (req) => {
     const appUrl = Deno.env.get("APP_URL");
     if (!appUrl) throw new Error("APP_URL must be configured on the server");
     const returnUrl = safeRedirect(redirectTo, appUrl, Deno.env.get("OAUTH_ALLOWED_ORIGINS"));
+    if (platform === "linkedin_page") {
+      const binding = uploadPostBinding(userData.user.id, brandId ?? null);
+      if (binding) {
+        const admin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+        const { data: brand, error: brandError } = await admin.from("sv_brands").select("id")
+          .eq("id", binding.brandId).eq("user_id", userData.user.id).maybeSingle();
+        if (brandError || !brand) throw new Error("Brand not found");
+        const row = await uploadPostConnectionRow(binding);
+        const { data: pending, error } = await admin.from("sv_oauth_pending").insert({
+          user_id: userData.user.id, platform, brand_id: binding.brandId, accounts: [row],
+        }).select("id").single();
+        if (error || !pending) throw new Error("Could not prepare the LinkedIn Page connection");
+        const destination = new URL("/accounts", returnUrl);
+        destination.searchParams.set("connection_request", pending.id);
+        return new Response(JSON.stringify({ authorizeUrl: destination.toString() }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
     let provider = getProvider(platform);
     if (platform === "facebook" || platform === "instagram") {
       // Reconnecting an existing publishing/inbox account must not silently

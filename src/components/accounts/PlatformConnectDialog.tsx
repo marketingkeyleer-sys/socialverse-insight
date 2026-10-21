@@ -20,7 +20,7 @@ const GUIDES: Record<GuidedPlatform, { account: string; steps: string[]; note: s
   linkedin_page: {
     account: "A LinkedIn account with administrator access to the company Page.",
     steps: ["Sign in with the LinkedIn account that administers the company Page.", "Review access to the company's authorized assets.", "Select the correct company Page and confirm it for this brand."],
-    note: "Company Page access requires LinkedIn's Community Management API approval for this application. A configured login does not establish that approval.",
+    note: "Company Page access uses the connection provider configured by your administrator. Brands connected through Upload-Post are verified against their selected company Page before confirmation. Other connections require this application's LinkedIn Community Management API approval.",
   },
 };
 

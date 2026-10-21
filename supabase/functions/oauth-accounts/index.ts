@@ -1,6 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 import { validateSelection } from "../_shared/oauth-policy.ts";
+import { uploadPostBinding, verifiedUploadPostPage, UPLOADPOST_SCOPE } from "../_shared/uploadpost.ts";
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), {
   status, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -27,6 +28,11 @@ Deno.serve(async (req) => {
     }
     if (selectedIds !== undefined) {
       validateSelection(pending.accounts, selectedIds);
+      if (pending.accounts.some((a: { scopes?: string[] }) => a.scopes?.includes(UPLOADPOST_SCOPE))) {
+        const binding = uploadPostBinding(data.user.id, pending.brand_id);
+        if (!binding || selectedIds.some((id: string) => id !== binding.pageId)) throw new Error("LinkedIn Page binding changed. Please reconnect.");
+        await verifiedUploadPostPage(binding);
+      }
       const { data: count, error: saveError } = await admin.rpc("sv_confirm_oauth", {
         request_id: pending.id, owner_id: data.user.id, selected_ids: selectedIds,
       });

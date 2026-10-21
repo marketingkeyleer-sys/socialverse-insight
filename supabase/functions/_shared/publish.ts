@@ -8,6 +8,7 @@ import { getYouTubeAccessToken } from "./sync.ts";
 import { createAndRunBroadcast } from "./whatsapp.ts";
 import { selectPublishTargets } from "./publish-policy.ts";
 import { publishLinkedInText } from "./linkedin.ts";
+import { UPLOADPOST_SCOPE } from "./uploadpost.ts";
 import { platformPostContent, validatePlatformDraft } from "./content-policy.ts";
 
 const GRAPH_VERSION = "v21.0";
@@ -309,6 +310,7 @@ export async function publishPost(
       }
       if (platform === "linkedin" || platform === "linkedin_page") {
         try {
+          if (account.scopes?.includes(UPLOADPOST_SCOPE)) throw new Error("This Page is connected through Upload-Post. Publishing from SocialVerse is not enabled for this provider yet. Publish using Upload-Post.");
           if (targetPost.media_urls?.length) throw new Error("LinkedIn currently supports text posts here. Remove media or publish this destination separately.");
           if (!account.access_token_ciphertext || !account.token_iv) throw new Error("Reconnect LinkedIn to enable publishing");
           if (account.token_expires_at && new Date(account.token_expires_at).getTime() <= Date.now()) throw new Error("LinkedIn authorization expired. Reconnect to publish.");
