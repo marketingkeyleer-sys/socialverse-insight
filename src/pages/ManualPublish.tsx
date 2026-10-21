@@ -22,7 +22,7 @@ export default function ManualPublish() {
   const scope = useBrandScope();
   const [params, setParams] = useSearchParams();
   const id = params.get("id") ?? undefined;
-  const { data: existing, isPending, isError } = usePost(id);
+  const { data: existing, isPending } = usePost(id);
   const { createPost, updatePost } = usePosts();
   const loaded = useRef("");
   const [platform, setPlatform] = useState<PersonalPlatform>(params.get("platform") === "instagram" ? "instagram" : "facebook");
@@ -51,12 +51,15 @@ export default function ManualPublish() {
   const action = async (work: () => Promise<unknown>) => {
     try { await work(); } catch (error) { toast.error(error instanceof Error ? error.message : "Please try again."); }
   };
+  if (id && (isPending || !existing || !manualPlatform(existing.tags))) {
+    return <div className="mx-auto max-w-4xl space-y-4 p-6"><h1 className="text-2xl font-semibold">Personal account publishing</h1>
+      {isPending ? <p role="status">Loading this workspace's draft…</p> : <p role="alert">This manual draft is not available in the selected workspace.</p>}
+      <Button asChild variant="outline"><Link to="/posts">Return to posts</Link></Button></div>;
+  }
   return <div className="mx-auto max-w-4xl space-y-6 p-4 md:p-6">
     <div><p className="text-xs font-semibold uppercase tracking-widest text-primary">{scope.brandName}</p><h1 className="mt-1 text-2xl font-semibold">Personal account publishing</h1><p className="mt-2 text-sm text-muted-foreground">Prepare your post here, then publish it yourself in Facebook or Instagram. No social account connection is required.</p></div>
     <p role="status" className="rounded-xl border bg-muted/30 p-4 text-sm">Manual drafts stay separate from automated publishing. SocialVerse cannot automatically publish these posts, confirm their publication or retrieve personal-account analytics.</p>
     {scope.brandId === ALL_BRANDS && <p role="alert">Choose one brand in the workspace selector to save a personal-account draft.</p>}
-    {id && isPending && <p role="status">Loading draft…</p>}
-    {id && (isError || (existing && !manualPlatform(existing.tags))) && <p role="alert">This manual draft is not available in this workspace. <Link className="underline" to="/posts">Return to posts</Link>.</p>}
     <Card><CardHeader><CardTitle>1. Prepare your content</CardTitle></CardHeader><CardContent className="space-y-4">
       <div><Label htmlFor="personal-platform">Platform</Label><select id="personal-platform" value={platform} onChange={event => setPlatform(event.target.value as PersonalPlatform)} className="mt-2 w-full rounded-md border bg-background p-2">{Object.entries(PERSONAL_PLATFORMS).map(([key, value]) => <option key={key} value={key}>{value.label}</option>)}</select></div>
       <div><Label htmlFor="manual-title">Draft title</Label><Input id="manual-title" value={title} onChange={event => setTitle(event.target.value)}/></div>
