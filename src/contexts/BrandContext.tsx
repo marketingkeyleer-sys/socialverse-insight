@@ -4,6 +4,7 @@ import { useBrands } from "@/hooks/useBrands";
 import { useConnectedAccounts } from "@/hooks/useConnectedAccounts";
 import { accountsForBrand, ALL_BRANDS, UNGROUPED } from "@/lib/brandScope";
 import type { Brand, ConnectedAccount } from "@/types/database";
+import { sessionChoice, saveSessionChoice } from "@/lib/workspaceSession";
 
 type BrandScope = {
   brandId: string; brandName: string; brands: Brand[]; accounts: ConnectedAccount[];
@@ -19,7 +20,8 @@ export function BrandProvider({ children }: { children: ReactNode }) {
   const brands = brandQuery.data ?? [];
   const allAccounts = accountQuery.data ?? [];
   const [selection, setSelection] = useState({ owner: "", id: "" });
-  const requested = selection.owner === user?.id ? selection.id : "";
+  const storageKey = user ? `socialverse:brand:${user.id}` : "";
+  const requested = selection.owner === user?.id ? selection.id : storageKey ? sessionChoice(storageKey) ?? "" : "";
   const brandId = requested === ALL_BRANDS || requested === UNGROUPED || brands.some((b) => b.id === requested)
     ? requested : brands[0]?.id ?? UNGROUPED;
   const accounts = accountsForBrand(allAccounts, brandId);
@@ -28,7 +30,10 @@ export function BrandProvider({ children }: { children: ReactNode }) {
     brandName: brandId === ALL_BRANDS ? "All brands" : brandId === UNGROUPED ? "Unassigned accounts" : brands.find((b) => b.id === brandId)?.name ?? "Your brand",
     ready: Boolean(user) && brandQuery.isSuccess && accountQuery.isSuccess,
     isError: brandQuery.isError || accountQuery.isError,
-    setBrandId: (id) => setSelection({ owner: user?.id ?? "", id }),
+    setBrandId: (id) => {
+      if (storageKey) saveSessionChoice(storageKey, id);
+      setSelection({ owner: user?.id ?? "", id });
+    },
   }}>{children}</BrandContext.Provider>;
 }
 

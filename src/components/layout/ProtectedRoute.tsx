@@ -19,7 +19,9 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
-  const confirmingConnection = location.pathname === "/accounts" && new URLSearchParams(location.search).has("connection_request");
+  const connectionParams = new URLSearchParams(location.search);
+  const confirmingConnection = location.pathname === "/accounts" &&
+    ["connection_request", "connect_error", "connected"].some(key => connectionParams.has(key));
   if (profile && !profile.onboarding_completed && location.pathname !== "/onboarding" && !confirmingConnection) {
     return <Navigate to="/onboarding" replace />;
   }
