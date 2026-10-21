@@ -5,6 +5,8 @@
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { decryptToken, encryptToken } from "./crypto.ts";
 import { syncWhatsApp } from "./whatsapp.ts";
+import { UPLOADPOST_SCOPE } from "./uploadpost.ts";
+import { syncUploadPostPage } from "./uploadpost-sync.ts";
 
 export interface SyncResult {
   postsSynced: number;
@@ -763,6 +765,9 @@ export async function syncAccount(
   accountId: string,
 ): Promise<SyncResult> {
     if (account.user_id !== userId || account.id !== accountId) throw new Error("Account belongs to another user");
+  if (account.platform === "linkedin_page" && account.scopes?.includes(UPLOADPOST_SCOPE)) {
+    return await syncUploadPostPage(supabase, userId, account, accountId);
+  }
   if (account.platform === "facebook") {
     return await syncFacebook(supabase, userId, account, accountId);
   }

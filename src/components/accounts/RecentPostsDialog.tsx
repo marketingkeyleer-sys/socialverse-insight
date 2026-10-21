@@ -24,6 +24,7 @@ export function RecentPostsDialog({
 }) {
   const { data: posts = [], isLoading } = usePlatformPosts(open ? account.id : undefined);
   const platform = account.platform as Platform;
+  const managedLinkedIn = platform === "linkedin_page" && account.scopes?.includes("socialverse:upload-post");
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -32,6 +33,7 @@ export function RecentPostsDialog({
           <DialogTitle>Recent {getPlatformLabel(platform)} posts</DialogTitle>
           <DialogDescription>Pulled from @{account.platform_username} on your last sync.</DialogDescription>
         </DialogHeader>
+        {managedLinkedIn && <p className="rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">Up to 100 recent Page posts are imported. Engagement refresh covers the latest 20; older post counters are not shown here. Full history and daily reach trends are not included.</p>}
 
         {isLoading ? (
           <div className="space-y-3">
@@ -45,7 +47,7 @@ export function RecentPostsDialog({
           </p>
         ) : (
           <div className="space-y-3">
-            {posts.map((post) => (
+            {posts.map((post, index) => (
               <a
                 key={post.id}
                 href={post.permalink_url ?? undefined}
@@ -68,13 +70,13 @@ export function RecentPostsDialog({
                   <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
                     <span>{getRelativeTime(post.posted_at)}</span>
                     <span className="inline-flex items-center gap-1">
-                      <Heart className="h-3 w-3" /> {formatNumber(post.likes_count)}
+                      <Heart className="h-3 w-3" /> {managedLinkedIn && index >= 20 ? "—" : formatNumber(post.likes_count)}
                     </span>
                     <span className="inline-flex items-center gap-1">
-                      <MessageCircle className="h-3 w-3" /> {formatNumber(post.comments_count)}
+                      <MessageCircle className="h-3 w-3" /> {managedLinkedIn && index >= 20 ? "—" : formatNumber(post.comments_count)}
                     </span>
                     <span className="inline-flex items-center gap-1">
-                      <Share2 className="h-3 w-3" /> {formatNumber(post.shares_count)}
+                      <Share2 className="h-3 w-3" /> {managedLinkedIn && index >= 20 ? "—" : formatNumber(post.shares_count)}
                     </span>
                     {post.permalink_url && <ExternalLink className="ml-auto h-3 w-3" />}
                   </div>

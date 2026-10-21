@@ -1,4 +1,4 @@
-import { encryptToken } from "./crypto.ts";
+import { encryptToken, decryptToken } from "./crypto.ts";
 
 export const UPLOADPOST_SCOPE = "socialverse:upload-post";
 export interface UploadPostBinding { userId: string; brandId: string; profile: string; pageId: string }
@@ -17,7 +17,7 @@ export function uploadPostBinding(userId: string, brandId: string | null): Uploa
   return binding;
 }
 
-async function providerGet(path: string) {
+export async function providerGet(path: string) {
   const key = Deno.env.get("UPLOAD_POST_API_KEY");
   if (!key) throw new Error("LinkedIn Page provider is not configured");
   const response = await fetch(`https://api.upload-post.com${path}`, {
@@ -27,6 +27,18 @@ async function providerGet(path: string) {
   const data = await response.json();
   if (data.success !== true) throw new Error("LinkedIn Page provider did not confirm this connection");
   return data;
+}
+
+export async function uploadPostAccountPage(account: { user_id: string; brand_id: string; platform_user_id: string; access_token_ciphertext: string; token_iv: string }) {
+  const binding = uploadPostBinding(account.user_id, account.brand_id);
+  if (!binding || binding.pageId !== account.platform_user_id) throw new Error("This LinkedIn Page no longer matches its brand configuration. Reconnect it.");
+  const reference = JSON.parse(await decryptToken(account.access_token_ciphertext, account.token_iv));
+  if (reference.provider !== "upload-post" || reference.userId !== binding.userId || reference.brandId !== binding.brandId || reference.profile !== binding.profile || reference.pageId !== binding.pageId) {
+    throw new Error("LinkedIn Page routing changed. Reconnect this account.");
+  }
+  const verified = await verifiedUploadPostPage(binding);
+  if (verified.memberId !== reference.memberId) throw new Error("The provider's LinkedIn member changed. Reconnect this account.");
+  return { ...verified, binding };
 }
 
 export async function verifiedUploadPostPage(binding: UploadPostBinding) {

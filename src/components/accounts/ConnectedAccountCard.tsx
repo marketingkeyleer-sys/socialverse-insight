@@ -96,7 +96,7 @@ export function ConnectedAccountCard({
           </div>
         </div>
 
-        {SYNCABLE_PLATFORMS.has(platform) && (
+        {(SYNCABLE_PLATFORMS.has(platform) || (platform === "linkedin_page" && account.scopes?.includes("socialverse:upload-post"))) && (
           <Select
             value={String(account.sync_interval_minutes)}
             onValueChange={(v) => onSyncIntervalChange(Number(v))}

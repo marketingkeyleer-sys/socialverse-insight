@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { uploadPostBinding, verifiedUploadPostPage, uploadPostConnectionRow } from '../supabase/functions/_shared/uploadpost.ts';
 import { decryptToken } from '../supabase/functions/_shared/crypto.ts';
+import { syncUploadPostPage } from '../supabase/functions/_shared/uploadpost-sync.ts';
 
 const binding = { userId: 'owner', brandId: 'brand', profile: 'robotverse', pageId: 'urn:li:organization:108154398' };
 const env = new Map([['UPLOAD_POST_API_KEY', 'server-only-secret'], ['OAUTH_ENCRYPTION_KEY', 'test-encryption-key'], ['UPLOAD_POST_LINKEDIN_BINDINGS', JSON.stringify([binding])]]);
@@ -44,5 +45,37 @@ test('changed Page pin, expired authorization, and provider failures fail closed
     await assert.rejects(verifiedUploadPostPage(binding), /Reconnect/);
     globalThis.fetch = async () => new Response('private provider error', { status: 401 });
     await assert.rejects(verifiedUploadPostPage(binding), error => !error.message.includes('private provider error'));
+  } finally { globalThis.fetch = original; }
+});
+
+test('monitoring sends an explicit Page destination and saves only the owning account', async () => {
+  const original = globalThis.fetch;
+  const writes = [];
+  globalThis.fetch = async url => {
+    const parsed = new URL(url);
+    if (parsed.pathname.endsWith('/linkedin-page')) return Response.json({ success: true, selected_page_id: binding.pageId, pages: [{ id: binding.pageId, name: 'RobotVerse', followers: 1482 }] });
+    if (parsed.pathname.endsWith('/robotverse')) return Response.json({ success: true, profile: { username: 'robotverse', social_accounts: { linkedin: { username: 'member-123' } } } });
+    assert.equal(parsed.searchParams.get('page_urn'), binding.pageId);
+    assert.equal(parsed.searchParams.get('user'), 'robotverse');
+    if (parsed.pathname.endsWith('/media')) return Response.json({ success: true, media: [{ id: 'urn:li:share:12345', caption: 'Brand post', timestamp: '2026-10-21T10:00:00Z', permalink: 'https://www.linkedin.com/feed/update/urn:li:share:12345' }] });
+    return Response.json({ success: true, platforms: { linkedin: { platform_post_id: 'urn:li:share:12345', post_metrics: { likes: 12, comments: 2, shares: 1, impressions: 100 } } } });
+  };
+  const db = { from(table) { return {
+    upsert(row) { writes.push({ table, row }); return Promise.resolve({ error: null }); },
+    select() { return { eq() { return { eq() { return Promise.resolve({ count: 1, error: null }); } }; } }; },
+    update(row) { writes.push({ table, row }); return { eq() { return { eq() { return Promise.resolve({ error: null }); } }; } }; },
+  }; } };
+  try {
+    const row = await uploadPostConnectionRow(binding);
+    const result = await syncUploadPostPage(db, 'owner', { ...row, id: 'account-1' }, 'account-1');
+    assert.equal(result.postsSynced, 1);
+    assert.equal(result.daysSynced, 0);
+    assert.equal(writes[0].row.connected_account_id, 'account-1');
+    assert.equal(writes[0].row.user_id, 'owner');
+    assert.equal(writes[0].row.impressions, 100);
+    assert.equal(writes[0].row.reach, undefined);
+    assert.equal(writes[1].row.followers_count, 1482);
+    await assert.rejects(syncUploadPostPage(db, 'other-owner', { ...row, id: 'account-1' }, 'account-1'), /another user/);
+    assert.equal(writes.length, 2);
   } finally { globalThis.fetch = original; }
 });

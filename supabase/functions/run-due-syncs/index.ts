@@ -6,6 +6,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 import { syncAccount } from "../_shared/sync.ts";
+import { UPLOADPOST_SCOPE } from "../_shared/uploadpost.ts";
 
 const BATCH_SIZE = 25;
 
@@ -35,12 +36,13 @@ Deno.serve(async (req) => {
       .from("sv_connected_accounts")
       .select("*")
       .eq("is_active", true)
-      .in("platform", ["facebook", "instagram", "youtube"]);
+      .in("platform", ["facebook", "instagram", "youtube", "linkedin_page"]);
     if (acctErr) throw new Error(acctErr.message);
 
     const now = Date.now();
     const due = (accounts ?? [])
       .filter((a) => {
+        if (a.platform === "linkedin_page" && !a.scopes?.includes(UPLOADPOST_SCOPE)) return false;
         if (!a.last_synced_at) return true;
         const dueAt = new Date(a.last_synced_at).getTime() + a.sync_interval_minutes * 60 * 1000;
         return dueAt <= now;

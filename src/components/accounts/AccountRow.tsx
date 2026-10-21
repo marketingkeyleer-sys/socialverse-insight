@@ -155,7 +155,7 @@ export function AccountRow({
             {!whatsapp && (
               <DropdownMenuItem onSelect={() => setPostsOpen(true)}>View recent posts</DropdownMenuItem>
             )}
-            {SYNCABLE.has(platform) && (
+            {(SYNCABLE.has(platform) || (platform === "linkedin_page" && account.scopes?.includes("socialverse:upload-post"))) && (
               <DropdownMenuSub>
                 <DropdownMenuSubTrigger>Auto-sync</DropdownMenuSubTrigger>
                 <DropdownMenuSubContent>
