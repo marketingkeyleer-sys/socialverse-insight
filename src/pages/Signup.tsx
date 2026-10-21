@@ -1,5 +1,5 @@
 import { useMemo, useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Loader2, MailCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,6 +23,7 @@ function passwordStrength(password: string): { score: 0 | 1 | 2 | 3; label: stri
 }
 
 export default function Signup() {
+  const navigate = useNavigate();
   const { data: googleEnabled = false } = useGoogleSignIn();
   const { signUp, signInWithGoogle } = useAuth();
   const [fullName, setFullName] = useState("");
@@ -43,13 +44,22 @@ export default function Signup() {
       return;
     }
     setLoading(true);
-    const { error } = await signUp(email, password, fullName);
-    setLoading(false);
-    if (error) {
-      setError(error);
-      return;
+    try {
+      const result = await signUp(email, password, fullName);
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      if (result.signedIn) {
+        navigate("/onboarding", { replace: true });
+        return;
+      }
+      setSubmitted(true);
+    } catch {
+      setError("Could not reach the sign-up service. Check your connection and try again.");
+    } finally {
+      setLoading(false);
     }
-    setSubmitted(true);
   };
 
   if (submitted) {

@@ -11,7 +11,7 @@ export interface AuthContextValue {
   profile: Profile | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
-  signUp: (email: string, password: string, fullName: string) => Promise<{ error: string | null }>;
+  signUp: (email: string, password: string, fullName: string) => Promise<{ error: string | null; signedIn: boolean }>;
   signInWithGoogle: (redirectPath?: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: string | null }>;
@@ -86,17 +86,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signIn: AuthContextValue["signIn"] = async (email, password) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
     return { error: error?.message ?? null };
   };
 
   const signUp: AuthContextValue["signUp"] = async (email, password, fullName) => {
-    const { error } = await supabase.auth.signUp({
-      email,
+    const { data, error } = await supabase.auth.signUp({
+      email: email.trim(),
       password,
-      options: { data: { full_name: fullName } },
+      options: {
+        data: { full_name: fullName.trim() },
+        emailRedirectTo: signInReturnUrl(window.location.origin, "/onboarding"),
+      },
     });
-    return { error: error?.message ?? null };
+    return { error: error?.message ?? null, signedIn: Boolean(data.session) };
   };
 
   const signInWithGoogle: AuthContextValue["signInWithGoogle"] = async (redirectPath) => {
