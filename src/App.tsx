@@ -27,6 +27,7 @@ import Analytics from "@/pages/Analytics";
 import Settings from "@/pages/Settings";
 import NotFound from "@/pages/NotFound";
 import Legal from "@/pages/Legal";
+import ManualPublish from "@/pages/ManualPublish";
 import { BrandProvider } from "@/contexts/BrandContext";
 
 const queryClient = new QueryClient({
@@ -91,6 +92,7 @@ export default function App() {
                 <Route path="/calendar" element={withLayout(<CalendarPage />)} />
                 <Route path="/accounts" element={withLayout(<Accounts />)} />
                 <Route path="/compose" element={withLayout(<Compose />)} />
+                <Route path="/manual-publish" element={withLayout(<ManualPublish />)} />
                 <Route path="/posts" element={withLayout(<Posts />)} />
                 <Route path="/posts/:id" element={withLayout(<PostDetail />)} />
                 <Route path="/inbox" element={withLayout(<Inbox />)} />

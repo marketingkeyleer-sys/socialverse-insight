@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { ArrowRight, CheckCircle2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -33,6 +34,7 @@ export function MetaConnectDialog({platform, brandName, pending, error, unavaila
         </ol>
         <a className="inline-flex items-center gap-1 text-xs font-medium text-primary underline" href={instagram ? "https://www.facebook.com/business/help" : "https://www.facebook.com/pages/create/"} target="_blank" rel="noreferrer">{instagram ? "Open Meta setup help" : "Create a Facebook Page"}<ExternalLink className="h-3 w-3"/></a>
         <Button variant="outline" size="sm" className="w-full" onClick={() => setAccountType("ready")}>I've completed setup</Button>
+        <Button asChild size="sm" variant="secondary" className="w-full"><Link to={`/manual-publish?platform=${platform}`}>Keep my personal account · publish manually</Link></Button>
       </div> : <div className="space-y-3 py-1">{[
         "Sign in on Facebook’s secure website. SocialVerse never asks for your Facebook password.",
         instagram ? "Allow access to the linked Page and professional Instagram account you want to connect." : "Allow access to the Page you want to manage. You choose what to authorize.",

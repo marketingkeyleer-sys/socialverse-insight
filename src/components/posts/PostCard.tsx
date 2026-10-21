@@ -13,6 +13,7 @@ import { PostStatusBadge } from "@/components/posts/PostStatusBadge";
 import { getPlatformLabel } from "@/lib/platforms";
 import { formatDate, truncateText } from "@/lib/utils";
 import type { Platform, Post } from "@/types/database";
+import { manualPlatform } from "@/lib/manualPublishing";
 
 export function PostCard({
   post,
@@ -28,6 +29,7 @@ export function PostCard({
   onDuplicate: () => void;
 }) {
   const when = post.published_at ?? post.scheduled_at ?? post.created_at;
+  const manual = manualPlatform(post.tags);
 
   return (
     <Card>
@@ -43,6 +45,7 @@ export function PostCard({
               </Badge>
             ))}
             <PostStatusBadge status={post.status} />
+            {manual && <Badge variant="secondary">Manual · {getPlatformLabel(manual)}</Badge>}
             <span className="text-xs text-muted-foreground">{formatDate(when)}</span>
           </div>
         </Link>
@@ -54,7 +57,7 @@ export function PostCard({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem asChild>
-              <Link to={`/compose?id=${post.id}`}>
+              <Link to={`/${manual ? "manual-publish" : "compose"}?id=${post.id}`}>
                 <Pencil className="mr-2 h-4 w-4" />
                 Edit
               </Link>

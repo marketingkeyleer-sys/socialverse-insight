@@ -22,6 +22,10 @@ Users can complete onboarding without a connected account. Provider errors or in
 
 Personal Instagram consumer accounts cannot use the implemented professional API route. Direct Instagram Login without a Facebook Page is a different integration and is not implemented here. A brand currently supports one account per platform; additional accounts use another brand or Unassigned accounts, subject to the user's plan. Do not promise unrestricted account types or unlimited plan capacity for every user.
 
+## Personal-account workflow implemented
+
+`/manual-publish` prepares Facebook personal-profile and Instagram personal-account posts without pretending they are OAuth connections. The page saves drafts in the existing brand-scoped `sv_posts` table, with a manual-platform tag and no automated destinations or scheduled job. It supports caption copying, individual media downloads, links to the official platform and an importable calendar reminder with a five-minute alarm. Users publish themselves. Calendar notification delivery depends on their calendar application; importing the file is required. SocialVerse does not claim publication, personal-profile analytics or a server notification. Manual drafts reopen in this flow from Posts, Post Detail and legacy Compose edit links. Existing database fields are reused; no migration is required.
+
 ## Production Meta app: confirmed owner inspection
 
 Production app is Dhivya **975939348747280**, not the similarly named unpublished app. Owner inspection confirmed:

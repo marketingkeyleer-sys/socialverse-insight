@@ -24,6 +24,7 @@ const NAV_ITEMS = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/accounts", label: "Accounts", icon: Users },
   { to: "/compose", label: "Compose", icon: PenSquare },
+  { to: "/manual-publish", label: "Personal publishing", icon: FileText },
   { to: "/calendar", label: "Calendar", icon: CalendarDays },
   { to: "/posts", label: "Posts", icon: FileText },
   { to: "/inbox", label: "Inbox", icon: Inbox },

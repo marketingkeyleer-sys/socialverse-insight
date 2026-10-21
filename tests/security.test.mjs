@@ -48,6 +48,21 @@ function database(tables, userId = 'A') {
 }
 const postRequest = (body) => new Request('https://edge.example.com', { method: 'POST', headers: { Authorization: 'Bearer test' }, body: JSON.stringify(body) });
 
+test('manual personal drafts never claim publication or call a provider', async () => {
+  const { publishPost } = await import('../supabase/functions/_shared/publish.ts');
+  const post = { id: 'manual-draft', user_id: 'A', status: 'draft', platforms: [], connected_account_ids: [], tags: ['manual:facebook'], content: 'Publish myself' };
+  const tables = { sv_posts: [post], sv_connected_accounts: accounts };
+  const originalFetch = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = async () => { calls += 1; throw new Error('Must not call a provider'); };
+  try {
+    await assert.rejects(publishPost(database(tables), 'A', post), /destination account/);
+    assert.equal(calls, 0);
+    assert.equal(post.status, 'draft');
+    assert.equal(tables.sv_post_platform_results, undefined);
+  } finally { globalThis.fetch = originalFetch; }
+});
+
 test('OAuth redirects reject attacker origins, credentials and script schemes', () => {
   for (const target of ['https://evil.example/accounts', '//evil.example', 'javascript:alert(1)', 'https://user:pass@app.example.com']) {
     assert.throws(() => safeRedirect(target, env.get('APP_URL')));

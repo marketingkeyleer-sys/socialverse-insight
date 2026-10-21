@@ -22,6 +22,7 @@ import { usePostResultAnalytics } from "@/hooks/usePostResultAnalytics";
 import { getPlatformLabel } from "@/lib/platforms";
 import { formatDate, formatNumber } from "@/lib/utils";
 import type { Platform } from "@/types/database";
+import { manualPlatform } from "@/lib/manualPublishing";
 
 export default function PostDetail() {
   const { id } = useParams<{ id: string }>();
@@ -79,7 +80,7 @@ export default function PostDetail() {
                 onClick={() => retryPost.mutate(post.id)}>{retryPost.isPending ? "Retrying…" : "Retry failed destinations"}</Button>
             )}
             <Button size="sm" variant="outline" asChild>
-              <Link to={`/compose?id=${post.id}`}>
+              <Link to={`/${manualPlatform(post.tags) ? "manual-publish" : "compose"}?id=${post.id}`}>
                 <Pencil className="mr-1.5 h-3.5 w-3.5" />
                 Edit
               </Link>
@@ -105,6 +106,7 @@ export default function PostDetail() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          {manualPlatform(post.tags) && <p className="rounded-lg border p-3 text-sm">Manual publishing draft. Open Edit to copy the caption, download media or create a calendar reminder. This draft has not been automatically published.</p>}
           {Object.entries(post.platform_content ?? {}).map(([platform, draft]) => draft && <section key={platform} className="rounded-xl border p-4"><h2 className="text-sm font-semibold">{getPlatformLabel(platform as Platform)} version</h2>{draft.title && <p className="mt-2 font-medium">{draft.title}</p>}<p className="mt-2 whitespace-pre-wrap text-sm">{draft.content}</p><div className="mt-3 grid grid-cols-2 gap-2">{draft.media_urls?.map((url) => /\.(mp4|mov)(?:\?|$)/i.test(url) ? <video key={url} src={url} controls className="rounded-lg" /> : <img key={url} src={url} alt={`${getPlatformLabel(platform as Platform)} attachment`} className="rounded-lg" />)}</div></section>)}
           <p className="whitespace-pre-wrap text-sm">{post.content}</p>
           {post.media_urls && post.media_urls.length > 0 && (

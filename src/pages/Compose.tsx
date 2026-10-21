@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,7 @@ import type { Platform, WhatsAppOptions } from "@/types/database";
 import { platformPostContent, validatePlatformDraft, type PlatformDraft } from "../../supabase/functions/_shared/content-policy";
 import { ALL_BRANDS, UNGROUPED } from "@/lib/brandScope";
 import { getPlatformConfig } from "@/lib/platforms";
+import { manualPlatform } from "@/lib/manualPublishing";
 
 export default function Compose() {
   const scope = useBrandScope();
@@ -196,10 +197,13 @@ export default function Compose() {
     }
   };
 
+  if (existingPost && manualPlatform(existingPost.tags)) return <Navigate to={`/manual-publish?id=${existingPost.id}`} replace />;
+
   return (
     <div className="mx-auto max-w-6xl space-y-6 p-4 md:p-6">
       <div><p className="text-xs font-semibold uppercase tracking-widest text-primary">{scope.brandName}</p><h1 className="text-2xl font-semibold tracking-tight">{editingId ? "Edit post" : "Create platform-specific content"}</h1><p className="mt-2 text-sm text-muted-foreground">Choose this company's channels, then tailor the caption and media for each platform.</p></div>
       {scope.brandId === ALL_BRANDS && <p role="alert" className="rounded-xl border border-amber-400/50 bg-amber-50 p-4 text-sm text-amber-950">Choose a single brand using the workspace selector above before creating content.</p>}
+      <p className="text-sm text-muted-foreground">Using a personal Facebook or Instagram account? <Link className="font-medium text-primary underline" to="/manual-publish">Prepare a manual publishing draft</Link>.</p>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="space-y-6">
