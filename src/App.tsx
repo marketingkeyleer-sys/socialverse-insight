@@ -29,6 +29,7 @@ import NotFound from "@/pages/NotFound";
 import Legal from "@/pages/Legal";
 import ManualPublish from "@/pages/ManualPublish";
 import Home from "@/pages/Home";
+import ContentPlanner from "@/pages/ContentPlanner";
 import { BrandProvider } from "@/contexts/BrandContext";
 
 const queryClient = new QueryClient({
@@ -93,6 +94,7 @@ export default function App() {
 
                 <Route path="/dashboard" element={withLayout(<Dashboard />)} />
                 <Route path="/calendar" element={withLayout(<CalendarPage />)} />
+                <Route path="/content-planner" element={withLayout(<ContentPlanner />)} />
                 <Route path="/accounts" element={withLayout(<Accounts />)} />
                 <Route path="/compose" element={withLayout(<Compose />)} />
                 <Route path="/manual-publish" element={withLayout(<ManualPublish />)} />

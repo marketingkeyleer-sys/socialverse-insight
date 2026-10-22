@@ -70,14 +70,21 @@ test('monitoring sends an explicit Page destination and saves only the owning ac
     const row = await uploadPostConnectionRow(binding);
     const result = await syncUploadPostPage(db, 'owner', { ...row, id: 'account-1' }, 'account-1');
     assert.equal(result.postsSynced, 1);
-    assert.equal(result.daysSynced, 0);
-    assert.equal(writes[0].row.connected_account_id, 'account-1');
-    assert.equal(writes[0].row.user_id, 'owner');
-    assert.equal(writes[0].row.impressions, 100);
-    assert.equal(writes[0].row.reach, undefined);
-    assert.equal(writes[1].row.followers_count, 1482);
+    assert.equal(result.daysSynced, 1);
+    const observation=writes.find(write=>write.table==='sv_analytics_snapshots').row;
+    assert.equal(observation.connected_account_id,'account-1');
+    assert.equal(observation.user_id,'owner');
+    assert.equal(observation.followers,1482);
+    assert.deepEqual(observation.available_metrics,['followers']);
+    assert.equal(observation.reach,undefined);
+    const post=writes.find(write=>write.table==='sv_platform_posts').row;
+    assert.equal(post.connected_account_id, 'account-1');
+    assert.equal(post.user_id, 'owner');
+    assert.equal(post.impressions, 100);
+    assert.equal(post.reach, undefined);
+    assert.equal(writes.find(write=>write.table==='sv_connected_accounts').row.followers_count, 1482);
     await assert.rejects(syncUploadPostPage(db, 'other-owner', { ...row, id: 'account-1' }, 'account-1'), /another user/);
-    assert.equal(writes.length, 2);
+    assert.equal(writes.length, 3);
   } finally { globalThis.fetch = original; }
 });
 

@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getPlatformColor, getPlatformLabel } from "@/lib/platforms";
 import type { AnalyticsSnapshot, Platform } from "@/types/database";
+import { snapshotSeries } from "@/lib/chartMetrics";
 
 type Metric = "reach" | "impressions";
 
@@ -12,15 +13,7 @@ type Metric = "reach" | "impressions";
 // entirely before (only combined totals existed as stat cards).
 export function ReachImpressionsChart({ snapshots }: { snapshots: AnalyticsSnapshot[] }) {
   const [metric, setMetric] = useState<Metric>("reach");
-  const platforms = [...new Set(snapshots.map((s) => s.platform))] as Platform[];
-  const byDate = new Map<string, Record<string, number | string>>();
-
-  for (const s of snapshots) {
-    const row = byDate.get(s.metric_date) ?? { date: s.metric_date };
-    row[s.platform] = (Number(row[s.platform]) || 0) + s[metric];
-    byDate.set(s.metric_date, row);
-  }
-  const data = [...byDate.values()].sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  const { platforms, data } = snapshotSeries(snapshots,metric);
 
   return (
     <Card>
@@ -37,7 +30,7 @@ export function ReachImpressionsChart({ snapshots }: { snapshots: AnalyticsSnaps
       </CardHeader>
       <CardContent className="h-72">
         {data.length === 0 ? (
-          <div className="flex h-full items-center justify-center text-sm text-muted-foreground">No data yet</div>
+          <div className="flex h-full items-center justify-center text-center text-sm text-muted-foreground">Daily {metric} is unavailable for these channels in this period. LinkedIn follower observations and post engagement appear in their own charts.</div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>

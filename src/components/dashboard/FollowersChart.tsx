@@ -2,22 +2,16 @@ import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YA
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getPlatformColor, getPlatformLabel } from "@/lib/platforms";
 import type { AnalyticsSnapshot, Platform } from "@/types/database";
+import { snapshotSeries } from "@/lib/chartMetrics";
 
 export function FollowersChart({ snapshots }: { snapshots: AnalyticsSnapshot[] }) {
-  const platforms = [...new Set(snapshots.map((s) => s.platform))] as Platform[];
-  const byDate = new Map<string, Record<string, number | string>>();
-
-  for (const s of snapshots) {
-    const row = byDate.get(s.metric_date) ?? { date: s.metric_date };
-    row[s.platform] = (Number(row[s.platform]) || 0) + s.followers;
-    byDate.set(s.metric_date, row);
-  }
-  const data = [...byDate.values()].sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  const { platforms, data } = snapshotSeries(snapshots,"followers");
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Follower growth</CardTitle>
+        <CardTitle className="text-base">Follower observations</CardTitle>
+        <p className="text-xs text-muted-foreground">One observation appears as a dot. A trend builds as daily syncs collect more data.</p>
       </CardHeader>
       <CardContent className="h-72">
         {data.length === 0 ? (
@@ -46,7 +40,7 @@ export function FollowersChart({ snapshots }: { snapshots: AnalyticsSnapshot[] }
                   // points to draw at all, so without a dot that platform
                   // was rendering as literally nothing on the chart.
                   dot={{ r: 3, fill: getPlatformColor(p) }}
-                  connectNulls
+                  connectNulls={false}
                 />
               ))}
             </LineChart>

@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import type { AnalyticsSnapshot, Platform } from "@/types/database";
 import { followerTotals } from "@/lib/analyticsTotals";
+import { hasSnapshotMetric } from "@/lib/chartMetrics";
 
 export interface DateRange {
   from: Date;
@@ -122,7 +123,8 @@ export function computeAggregates(snapshots: AnalyticsSnapshot[]): AnalyticsAggr
   const earliestFollowers = totals.first;
   const totalImpressions = snapshots.reduce((sum, s) => sum + s.impressions, 0);
   const totalReach = snapshots.reduce((sum, s) => sum + s.reach, 0);
-  const avgEngagementRate = snapshots.reduce((sum, s) => sum + Number(s.engagement_rate), 0) / snapshots.length;
+  const engagementRows = snapshots.filter(row => hasSnapshotMetric(row,"engagement_rate"));
+  const avgEngagementRate = engagementRows.length ? engagementRows.reduce((sum, s) => sum + Number(s.engagement_rate), 0) / engagementRows.length : 0;
 
   const midpoint = Math.floor(dates.length / 2) || 1;
   const firstHalfImpressions = dates

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, Navigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -51,6 +51,7 @@ export default function ManualPublish() {
   const action = async (work: () => Promise<unknown>) => {
     try { await work(); } catch (error) { toast.error(error instanceof Error ? error.message : "Please try again."); }
   };
+  if (!id) return <Navigate to="/compose" replace />;
   if (id && (isPending || !existing || !manualPlatform(existing.tags))) {
     return <div className="mx-auto max-w-4xl space-y-4 p-6"><h1 className="text-2xl font-semibold">Personal account publishing</h1>
       {isPending ? <p role="status">Loading this workspace's draft…</p> : <p role="alert">This manual draft is not available in the selected workspace.</p>}

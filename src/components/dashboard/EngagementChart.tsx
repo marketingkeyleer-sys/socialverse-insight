@@ -1,10 +1,12 @@
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { AnalyticsSnapshot } from "@/types/database";
+import { hasSnapshotMetric } from "@/lib/chartMetrics";
 
 export function EngagementChart({ snapshots }: { snapshots: AnalyticsSnapshot[] }) {
   const byDate = new Map<string, { total: number; count: number }>();
   for (const s of snapshots) {
+    if (!hasSnapshotMetric(s,"engagement_rate")) continue;
     const bucket = byDate.get(s.metric_date) ?? { total: 0, count: 0 };
     bucket.total += Number(s.engagement_rate);
     bucket.count += 1;

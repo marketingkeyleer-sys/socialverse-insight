@@ -7,6 +7,7 @@ import { DateRangePicker } from "@/components/analytics/DateRangePicker";
 import { FollowersTrendChart } from "@/components/analytics/FollowersTrendChart";
 import { ReachImpressionsChart } from "@/components/analytics/ReachImpressionsChart";
 import { PostsBarChart } from "@/components/analytics/PostsBarChart";
+import { PostEngagementChart } from "@/components/analytics/PostEngagementChart";
 import { PlatformPostsTable } from "@/components/analytics/PlatformPostsTable";
 import { ChannelPerformanceTable } from "@/components/analytics/ChannelPerformanceTable";
 import { useReportSnapshots } from "@/hooks/useReportSnapshots";
@@ -59,6 +60,7 @@ export default function Analytics() {
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{metrics.map(m => <div key={m.label} className="rounded-2xl border bg-card p-5 shadow-sm"><div className="flex items-center justify-between"><p className="text-xs font-medium text-muted-foreground">{m.label}</p><span className={cn("rounded-lg p-2",m.bg,m.color)}><m.icon className="h-4 w-4"/></span></div><p className="mt-3 text-3xl font-semibold tracking-tight tabular-nums">{m.value}</p><p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">{m.note}</p></div>)}</div>
       <div className="pt-2"><p className="text-[10px] font-bold uppercase tracking-[.2em] text-primary">Explore the detail</p><h2 className="mt-1 text-xl font-semibold">Trends & publishing activity</h2><p className="mt-1 text-xs text-muted-foreground">Daily data appears where history has been synced. Gaps indicate missing observations.</p></div>
       <FollowersTrendChart snapshots={snapshots}/>
+      <PostEngagementChart posts={posts}/>
       <div className="grid gap-5 xl:grid-cols-2"><ReachImpressionsChart snapshots={snapshots}/><PostsBarChart posts={posts}/></div>
       <div className="rounded-xl border border-dashed bg-muted/20 p-4 text-xs leading-relaxed text-muted-foreground"><p className="font-semibold text-foreground">How to read this report</p><p className="mt-1">Audience history is limited to saved snapshots. The daily chart uses the existing sync fields: YouTube views are currently stored in the impressions series; they are not unique reach. Some platforms store zeros when insights are unavailable. Post details show a dash for unavailable reach, impressions or views. Counts reflect synced content, which may not include all historical posts.</p></div>
       <PlatformPostsTable posts={posts}/>

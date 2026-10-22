@@ -14,6 +14,7 @@ import {
   Settings,
   Users,
   House,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -25,7 +26,7 @@ const NAV_ITEMS = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/accounts", label: "Accounts", icon: Users },
   { to: "/compose", label: "Compose", icon: PenSquare },
-  { to: "/manual-publish", label: "Personal publishing", icon: FileText },
+  { to: "/content-planner", label: "Content planner", icon: Sparkles },
   { to: "/calendar", label: "Calendar", icon: CalendarDays },
   { to: "/posts", label: "Posts", icon: FileText },
   { to: "/inbox", label: "Inbox", icon: Inbox },

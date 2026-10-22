@@ -175,6 +175,7 @@ export interface Database {
           connected_account_id: string;
           platform: Platform;
           metric_date: string;
+          available_metrics?: string[] | null;
           followers: number;
           following: number;
           impressions: number;

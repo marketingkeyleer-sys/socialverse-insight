@@ -71,7 +71,7 @@ export default function CalendarPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Calendar</h1>
-          <p className="text-sm text-muted-foreground">Every scheduled and published post, by day.</p>
+          <p className="text-sm text-muted-foreground">Every scheduled and published post, by day. <Link className="text-primary underline" to="/content-planner">Plan a month or year</Link></p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={() => setMonthCursor((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1))}>

@@ -197,9 +197,8 @@ test('actual publisher isolates two users, claims atomically and skips successfu
     const a = { ...tables.sv_posts[0] }, b = { ...tables.sv_posts[1] };
     const attempts = await Promise.allSettled([publishPost(client, 'A', a), publishPost(client, 'A', a), publishPost(client, 'B', b)]);
     assert.equal(attempts.filter((a) => a.status === 'fulfilled').length, 2);
-    assert.deepEqual(published.map((url) => new URL(url).pathname), ['/v21.0/a1/feed', '/v21.0/b1/feed']);
-    assert.equal(tables.sv_post_platform_results[0].user_id, 'A');
-    assert.equal(tables.sv_post_platform_results[1].user_id, 'B');
+    assert.deepEqual(published.map((url) => new URL(url).pathname).sort(), ['/v21.0/a1/feed', '/v21.0/b1/feed']);
+    assert.deepEqual(tables.sv_post_platform_results.map(result => [result.connected_account_id,result.user_id]).sort(), [['a1','A'],['b1','B']]);
     tables.sv_posts[0].status = 'partially_failed';
     await publishPost(client, 'A', a);
     assert.equal(published.length, 2, 'retry must not send an already published destination');

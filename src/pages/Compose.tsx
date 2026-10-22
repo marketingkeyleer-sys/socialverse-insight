@@ -204,7 +204,7 @@ export default function Compose() {
     <div className="mx-auto max-w-6xl space-y-6 p-4 md:p-6">
       <div><p className="text-xs font-semibold uppercase tracking-widest text-primary">{scope.brandName}</p><h1 className="text-2xl font-semibold tracking-tight">{editingId ? "Edit post" : "Create platform-specific content"}</h1><p className="mt-2 text-sm text-muted-foreground">Choose this company's channels, then tailor the caption and media for each platform.</p></div>
       {scope.brandId === ALL_BRANDS && <p role="alert" className="rounded-xl border border-amber-400/50 bg-amber-50 p-4 text-sm text-amber-950">Choose a single brand using the workspace selector above before creating content.</p>}
-      <p className="text-sm text-muted-foreground">Using a personal Facebook or Instagram account? <Link className="font-medium text-primary underline" to="/manual-publish">Prepare a manual publishing draft</Link>.</p>
+      <p className="text-sm text-muted-foreground">Automated publishing requires a Facebook Page or professional Instagram account. <Link className="font-medium text-primary underline" to="/content-planner">Plan a month or year of content</Link>.</p>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="space-y-6">

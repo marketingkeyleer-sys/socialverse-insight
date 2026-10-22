@@ -35,6 +35,14 @@ export async function syncUploadPostPage(supabase: SupabaseClient, userId: strin
     }));
   }
   const fetchedAt = new Date().toISOString();
+  if (metric(page.followers) !== undefined) {
+    const {error: snapshotError} = await supabase.from("sv_analytics_snapshots").upsert({
+      user_id:userId, connected_account_id:accountId, platform:"linkedin_page",
+      metric_date:fetchedAt.slice(0,10), followers:page.followers, fetched_at:fetchedAt,
+      available_metrics:["followers"],
+    },{onConflict:"connected_account_id,metric_date"});
+    if (snapshotError) throw new Error("Could not save LinkedIn follower observation");
+  }
   for (const post of media) {
     const stats = metrics.get(post.id);
     // Omit unavailable counters rather than overwrite previously fetched data.
@@ -60,5 +68,5 @@ export async function syncUploadPostPage(supabase: SupabaseClient, userId: strin
   if (error) throw new Error("Could not update LinkedIn sync status");
   if (unavailable) warnings.push(`Engagement metrics were unavailable for ${unavailable} recent posts. Previously stored values were retained; newly imported posts may show default counters until metrics are available.`);
   warnings.push("LinkedIn monitoring imports up to 100 recent Page posts and refreshes engagement for the latest 20. Full historical analytics and daily reach trends are not available in this sync.");
-  return { postsSynced: media.length, daysSynced: 0, warnings };
+  return { postsSynced: media.length, daysSynced: metric(page.followers) !== undefined ? 1 : 0, warnings };
 }

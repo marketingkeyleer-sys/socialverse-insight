@@ -21,6 +21,12 @@ verify_jwt = true
 [functions.generate-post]
 verify_jwt = true
 
+[functions.content-campaigns]
+verify_jwt = true
+
+[functions.run-content-campaigns]
+verify_jwt = false
+
 [functions.run-due-posts]
 # Called by pg_cron with a shared-secret bearer token, not a Supabase user
 # session — that token isn't a real Supabase JWT, so verify_jwt would reject
