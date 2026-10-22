@@ -27,7 +27,7 @@ async function generateCaption(openaiKey: string, title: string, websiteUrl?: st
     signal: AbortSignal.timeout(25000),
   });
   const json = await res.json();
-  if (!res.ok) throw new Error(json.error?.message ?? "Caption generation failed");
+  if (!res.ok) throw new Error(res.status === 401 ? "AI credentials were rejected. The administrator must update the server's OpenAI key." : res.status === 429 ? "The AI provider's quota or rate limit is exhausted. The administrator must check OpenAI billing and limits." : "The AI provider is unavailable. Please retry later.");
   const caption = json.choices?.[0]?.message?.content?.trim();
   if (!caption) throw new Error("OpenAI returned no caption");
   return caption;
@@ -96,7 +96,7 @@ Deno.serve(async (req) => {
       generateCaption(openaiKey, title, websiteUrl || undefined),
       withImage ? generateImage(openaiKey, title) : Promise.resolve(null),
     ]);
-    if (captionResult.status !== "fulfilled") throw new Error("Caption generation is unavailable. Check your AI service configuration or retry later.");
+    if (captionResult.status !== "fulfilled") throw new Error(captionResult.reason instanceof Error && captionResult.reason.message.startsWith("AI ") || captionResult.reason instanceof Error && captionResult.reason.message.startsWith("The AI provider") ? captionResult.reason.message : "Caption generation is unavailable. Check your AI service configuration or retry later.");
     const caption = captionResult.value;
     let imageUrl: string | undefined;
     let warning: string | undefined;

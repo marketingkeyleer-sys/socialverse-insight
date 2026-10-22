@@ -32,3 +32,14 @@ test('publishing preflight distinguishes read-only connections and managed Linke
  assert.equal(publishingAccessIssue({platform:'linkedin_page',scopes:['socialverse:upload-post']}),null);
  assert.match(publishingAccessIssue({platform:'facebook',is_active:false}),/Reconnect/);
 });
+test('provider quota failures give an actionable message without exposing provider details',async()=>{
+ const original=globalThis.fetch;
+ globalThis.fetch=async()=>Response.json({error:{message:'private account billing detail'}},{status:429});
+ try {
+ const response=await handler(request({title:'Topic',withImage:false}));
+ assert.equal(response.status,400);
+ const body=await response.json();
+ assert.match(body.error,/quota or rate limit/);
+ assert.equal(body.error.includes('private account'),false);
+ }finally{globalThis.fetch=original;}
+});

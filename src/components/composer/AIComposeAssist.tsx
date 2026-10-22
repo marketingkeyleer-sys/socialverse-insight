@@ -19,6 +19,7 @@ export function AIComposeAssist({
   const [websiteUrl, setWebsiteUrl] = useState("");
   const [generating, setGenerating] = useState(false);
   const [withImage, setWithImage] = useState(false);
+  const [generationError, setGenerationError] = useState<string | null>(null);
   const { user } = useAuth();
   const cache = useQueryClient();
   const usage = useQuery({queryKey:["ai-usage",user?.id],enabled:Boolean(user),retry:false,staleTime:30000,queryFn:async () => {
@@ -34,6 +35,7 @@ export function AIComposeAssist({
       return;
     }
     setGenerating(true);
+    setGenerationError(null);
     try {
       const { data, error } = await supabase.functions.invoke<{
         caption?: string;
@@ -49,7 +51,9 @@ export function AIComposeAssist({
       toast.success("Working draft generated — review it and copy to your chosen channels");
       if (data.warning) toast.warning(data.warning);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "AI generation failed");
+      const message = error instanceof Error ? error.message : "AI generation failed";
+      setGenerationError(message);
+      toast.error(message);
     } finally {
       setGenerating(false);
       void cache.invalidateQueries({queryKey:["ai-usage",user?.id]});
@@ -88,6 +92,7 @@ export function AIComposeAssist({
         <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={withImage} onChange={event => setWithImage(event.target.checked)} disabled={generating}/>Also generate an image (takes longer)</label>
         {usage.data && <p className="text-xs text-muted-foreground">{usage.data.used}/{usage.data.limit} AI requests used this hour · resets {new Date(usage.data.resetAt).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})}. Attempts count even if a provider fails.</p>}
         {usage.error && <p className="text-xs text-destructive">{usage.error.message}</p>}
+        {generationError && <p role="alert" className="rounded-lg border border-destructive/30 p-3 text-sm text-destructive">{generationError}</p>}
         <Button onClick={handleGenerate} disabled={generating || Boolean(usage.data && usage.data.used >= usage.data.limit)} className="w-full">
           {generating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
           {generating ? (withImage ? "Generating caption and image…" : "Drafting caption…") : withImage ? "Generate caption & image" : "Generate caption"}

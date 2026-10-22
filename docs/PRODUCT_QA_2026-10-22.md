@@ -33,3 +33,5 @@
 - Real social publication was not used as a QA test: no public test content was posted. Provider publishing behavior was tested with mocks; final live delivery requires reviewed content and eligible connections.
 - There were no existing scheduled posts in the inspected owner account. The empty calendar was consistent with its data as well as the refresh/date defects addressed here.
 - Google/Meta/LinkedIn review decisions cannot be bypassed by application changes.
+- The public frontend update was published and checked in the browser (Home, channel selection, calendar, post filters, LinkedIn analytics and Privacy Back navigation).
+- Live caption-generation attempts failed despite authenticated usage tracking working. Provider credentials, billing or availability require attention; persistent sanitized diagnostics distinguish these failures.
