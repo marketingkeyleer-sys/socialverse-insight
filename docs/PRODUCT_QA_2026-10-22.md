@@ -34,4 +34,4 @@
 - There were no existing scheduled posts in the inspected owner account. The empty calendar was consistent with its data as well as the refresh/date defects addressed here.
 - Google/Meta/LinkedIn review decisions cannot be bypassed by application changes.
 - The public frontend update was published and checked in the browser (Home, channel selection, calendar, post filters, LinkedIn analytics and Privacy Back navigation).
-- Live caption-generation attempts failed despite authenticated usage tracking working. Provider credentials, billing or availability require attention; persistent sanitized diagnostics distinguish these failures.
+- Live caption generation returned OpenAI HTTP 429 (provider quota or rate limit). Authenticated usage tracking works and the public UI keeps this actionable error visible. The administrator must check OpenAI billing/limits; no billing or purchase changes were made.
