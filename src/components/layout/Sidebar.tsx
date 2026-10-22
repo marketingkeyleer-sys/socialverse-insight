@@ -13,14 +13,15 @@ import {
   PenSquare,
   Settings,
   Users,
+  House,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 import { APP_NAME, PLAN_LIMITS } from "@/lib/constants";
 
 const NAV_ITEMS = [
+  { to: "/home", label: "Home", icon: House },
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/accounts", label: "Accounts", icon: Users },
   { to: "/compose", label: "Compose", icon: PenSquare },
@@ -48,7 +49,7 @@ export function Sidebar() {
     >
       <div className="flex h-16 items-center justify-between px-4">
         {!collapsed && (
-          <NavLink to="/dashboard" className="text-lg font-semibold tracking-tight hover:opacity-80">
+          <NavLink to="/home" className="text-lg font-semibold tracking-tight hover:opacity-80">
             {APP_NAME}
           </NavLink>
         )}
@@ -82,13 +83,9 @@ export function Sidebar() {
       <div className="border-t p-3">
         {!collapsed && <div className="mb-2 flex gap-4 px-2 text-xs text-muted-foreground"><NavLink to="/privacy" className="hover:underline">Privacy</NavLink><NavLink to="/terms" className="hover:underline">Terms</NavLink></div>}
         <div className={cn("flex items-center gap-2 rounded-lg p-2", collapsed && "justify-center")}>
-          <Avatar className="h-8 w-8 shrink-0">
-            <AvatarImage src={profile?.avatar_url ?? undefined} alt={profile?.full_name ?? "You"} />
-            <AvatarFallback>{(profile?.full_name ?? profile?.email ?? "U").slice(0, 1).toUpperCase()}</AvatarFallback>
-          </Avatar>
           {!collapsed && (
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium">{profile?.full_name ?? profile?.email}</p>
+              <p className="truncate text-xs text-muted-foreground">Workspace plan</p>
               <Badge variant="secondary" className="mt-0.5 text-[10px] capitalize">
                 {PLAN_LIMITS[planTier].label}
               </Badge>

@@ -15,6 +15,7 @@ export function SchedulePicker({
   onDateChange: (date: Date | undefined) => void;
   onTimeChange: (time: string) => void;
 }) {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
   return (
     <div className="flex flex-wrap gap-2">
       <Popover>
@@ -25,11 +26,12 @@ export function SchedulePicker({
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">
-          <Calendar mode="single" selected={date} onSelect={onDateChange} disabled={{ before: new Date() }} />
+          <Calendar mode="single" selected={date} onSelect={onDateChange} disabled={{ before: today }} />
         </PopoverContent>
       </Popover>
       <input
         type="time"
+        aria-label="Publishing time in your device timezone"
         value={time}
         onChange={(e) => onTimeChange(e.target.value)}
         className="h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"

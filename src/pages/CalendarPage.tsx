@@ -8,6 +8,7 @@ import { useCalendarPosts, effectiveDate } from "@/hooks/useCalendarPosts";
 import { getPlatformIcon } from "@/lib/platforms";
 import { cn, truncateText } from "@/lib/utils";
 import type { Platform, Post } from "@/types/database";
+import { localDayKey } from "@/lib/scheduling";
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -33,18 +34,20 @@ function statusDotColor(status: Post["status"]) {
 export default function CalendarPage() {
   const [monthCursor, setMonthCursor] = useState(() => new Date());
   const [dialogDate, setDialogDate] = useState<Date | null>(null);
-  const { data: posts = [], isLoading } = useCalendarPosts();
+  const { data: posts = [], isLoading, error, refetch } = useCalendarPosts(monthCursor);
+  const [platformFilter, setPlatformFilter] = useState<Platform | "all">("all");
 
   const postsByDay = useMemo(() => {
     const map = new Map<string, Post[]>();
     for (const post of posts) {
+      if (platformFilter !== "all" && !post.platforms.includes(platformFilter)) continue;
       const date = effectiveDate(post);
       if (!date) continue;
-      const key = date.slice(0, 10);
+      const key = localDayKey(date);
       map.set(key, [...(map.get(key) ?? []), post]);
     }
     return map;
-  }, [posts]);
+  }, [posts, platformFilter]);
 
   const days = useMemo(() => {
     const year = monthCursor.getFullYear();
@@ -84,6 +87,10 @@ export default function CalendarPage() {
         </div>
       </div>
 
+      <div className="flex flex-wrap gap-2"><Button size="sm" variant={platformFilter === "all" ? "default" : "outline"} onClick={() => setPlatformFilter("all")}>All platforms</Button>{[...new Set(posts.flatMap(post => post.platforms))].map(platform => <Button key={platform} size="sm" variant={platformFilter === platform ? "default" : "outline"} onClick={() => setPlatformFilter(platform as Platform)}>{platform.replace("_", " ")}</Button>)}<Button asChild size="sm" className="ml-auto"><Link to="/compose">Create post</Link></Button></div>
+      <p className="text-xs text-muted-foreground">Times use your device timezone ({Intl.DateTimeFormat().resolvedOptions().timeZone}). Scheduling supports one or several connected accounts. Automatic publishing is checked every five minutes.</p>
+      {error && <p role="alert">Calendar could not load. <button className="underline" onClick={() => void refetch()}>Retry</button></p>}
+      {!isLoading && !error && !posts.length && <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">No dated posts in this workspace yet. Save a scheduled post to see it here; undated drafts remain in Posts.</p>}
       {isLoading ? (
         <Skeleton className="h-[600px] rounded-xl" />
       ) : (
@@ -98,7 +105,7 @@ export default function CalendarPage() {
           <div className="grid grid-cols-7">
             {days.map((day, i) => {
               const inMonth = day.getMonth() === monthCursor.getMonth();
-              const dayPosts = postsByDay.get(day.toISOString().slice(0, 10)) ?? [];
+              const dayPosts = postsByDay.get(localDayKey(day)) ?? [];
               const overflow = dayPosts.length - 3;
 
               return (

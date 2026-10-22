@@ -24,6 +24,7 @@ async function generateCaption(openaiKey: string, title: string, websiteUrl?: st
       messages: [{ role: "user", content: prompt }],
       max_tokens: 400,
     }),
+    signal: AbortSignal.timeout(25000),
   });
   const json = await res.json();
   if (!res.ok) throw new Error(json.error?.message ?? "Caption generation failed");
@@ -37,10 +38,11 @@ async function generateImage(openaiKey: string, title: string): Promise<Uint8Arr
   const res = await fetch("https://api.openai.com/v1/images/generations", {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${openaiKey}` },
-    body: JSON.stringify({ model: IMAGE_MODEL, prompt, size: "1024x1024", n: 1 }),
+    body: JSON.stringify({ model: IMAGE_MODEL, prompt, size: "1024x1024", quality: "low", n: 1 }),
+    signal: AbortSignal.timeout(100000),
   });
   const json = await res.json();
-  if (!res.ok) throw new Error(json.error?.message ?? "Image generation failed");
+  if (!res.ok) throw new Error("Image generation is unavailable. Retry later or upload your own image.");
   const b64 = json.data?.[0]?.b64_json;
   if (!b64) throw new Error("OpenAI returned no image");
   return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
@@ -48,6 +50,7 @@ async function generateImage(openaiKey: string, title: string): Promise<Uint8Arr
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method !== "POST") return new Response(JSON.stringify({error:"Use POST"}), {status:405, headers:{...corsHeaders,"Content-Type":"application/json"}});
 
   try {
     const openaiKey = Deno.env.get("OPENAI_API_KEY");
@@ -68,22 +71,49 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { title, websiteUrl } = await req.json();
-    if (!title || typeof title !== "string") throw new Error("A title is required");
+    const { title, websiteUrl, withImage = true, usageOnly = false } = await req.json();
+    const admin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const limit = Math.floor(Math.min(10000, Math.max(1, Number(Deno.env.get("AI_REQUESTS_PER_HOUR")) || 20)));
+    const hour = new Date(); hour.setUTCMinutes(0,0,0);
+    const resetAt = new Date(hour.getTime() + 3600000).toISOString();
+    if (usageOnly) {
+      const {data, error} = await admin.from("sv_ai_usage").select("requests").eq("user_id", userData.user.id).eq("hour_start", hour.toISOString()).maybeSingle();
+      if (error) throw new Error("AI usage tracking is not configured. Contact your administrator.");
+      return new Response(JSON.stringify({usage:{used:data?.requests ?? 0, limit, resetAt}}), {headers:{...corsHeaders,"Content-Type":"application/json"}});
+    }
+    if (typeof title !== "string" || !title.trim() || title.length > 1500) throw new Error("Enter a topic between 1 and 1500 characters");
+    if (typeof withImage !== "boolean") throw new Error("Invalid image option");
+    if (websiteUrl) {
+      if (typeof websiteUrl !== "string" || websiteUrl.length > 2048) throw new Error("Enter a valid website URL");
+      const url = new URL(websiteUrl);
+      if (url.protocol !== "https:" || url.username || url.password) throw new Error("Use an HTTPS website URL without credentials");
+    }
+    const {data: used, error: usageError} = await admin.rpc("sv_reserve_ai_request", {owner_id:userData.user.id, request_limit:limit});
+    if (usageError) throw new Error("AI usage tracking is not configured. Contact your administrator.");
+    if (used < 0) return new Response(JSON.stringify({error:"Hourly AI request limit reached. Try again after the reset.",usage:{used:limit,limit,resetAt}}), {status:429,headers:{...corsHeaders,"Content-Type":"application/json"}});
 
-    const [caption, imageBytes] = await Promise.all([
+    const [captionResult, imageResult] = await Promise.allSettled([
       generateCaption(openaiKey, title, websiteUrl || undefined),
-      generateImage(openaiKey, title),
+      withImage ? generateImage(openaiKey, title) : Promise.resolve(null),
     ]);
+    if (captionResult.status !== "fulfilled") throw new Error("Caption generation is unavailable. Check your AI service configuration or retry later.");
+    const caption = captionResult.value;
+    let imageUrl: string | undefined;
+    let warning: string | undefined;
+    const imageBytes = imageResult.status === "fulfilled" ? imageResult.value : null;
+    if (withImage && !imageBytes) warning = "Caption generated; the image service is unavailable. You can upload an image or retry generation.";
 
+    if (imageBytes) {
     const path = `${userData.user.id}/ai-${crypto.randomUUID()}.png`;
     const { error: uploadErr } = await supabase.storage
       .from("sv-media")
       .upload(path, imageBytes, { contentType: "image/png" });
-    if (uploadErr) throw new Error(uploadErr.message);
+    if (uploadErr) warning = "Caption generated; the image could not be saved. Upload an image manually.";
     const { data: publicUrlData } = supabase.storage.from("sv-media").getPublicUrl(path);
+    if (!uploadErr) imageUrl = publicUrlData.publicUrl;
+    }
 
-    return new Response(JSON.stringify({ caption, imageUrl: publicUrlData.publicUrl }), {
+    return new Response(JSON.stringify({ caption, imageUrl, warning, usage:{used,limit,resetAt} }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {

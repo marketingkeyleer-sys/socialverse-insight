@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { LogOut, Moon, Settings, Sun, User } from "lucide-react";
+import { LogOut, Moon, Settings, Sun } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,7 +36,7 @@ export function Navbar() {
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="rounded-full">
+            <button className="rounded-full" aria-label="Profile and settings">
               <Avatar className="h-8 w-8">
                 <AvatarImage src={profile?.avatar_url ?? undefined} alt={profile?.full_name ?? "You"} />
                 <AvatarFallback>{(profile?.full_name ?? profile?.email ?? "U").slice(0, 1).toUpperCase()}</AvatarFallback>
@@ -45,12 +45,8 @@ export function Navbar() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
             <DropdownMenuItem onClick={() => navigate("/settings")}>
-              <User className="mr-2 h-4 w-4" />
-              Profile
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate("/settings")}>
               <Settings className="mr-2 h-4 w-4" />
-              Settings
+              Profile & settings
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleSignOut} variant="destructive">

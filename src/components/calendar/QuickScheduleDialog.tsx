@@ -20,6 +20,11 @@ import { usePosts } from "@/hooks/usePosts";
 import { supabase } from "@/lib/supabase";
 import { formatDate } from "@/lib/utils";
 import type { Platform } from "@/types/database";
+import { scheduleTimestamp } from "@/lib/scheduling";
+import { validatePlatformDraft } from "../../../supabase/functions/_shared/content-policy";
+import { functionError } from "@/lib/functionError";
+import { MediaUploader } from "@/components/composer/MediaUploader";
+import { publishingAccessIssue } from "../../../supabase/functions/_shared/publishing-access";
 
 export function QuickScheduleDialog({
   date,
@@ -43,6 +48,9 @@ export function QuickScheduleDialog({
   const [time, setTime] = useState("09:00");
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [withImage, setWithImage] = useState(false);
+  const [media, setMedia] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
 
   const reset = () => {
     setTitle("");
@@ -51,13 +59,10 @@ export function QuickScheduleDialog({
     setImageUrl(null);
     setSelectedAccountIds([]);
     setTime("09:00");
+    setMedia([]); setWithImage(false);
   };
 
   const togglePlatform = (accountId: string) => {
-    const platform = accounts.find((a) => a.id === accountId)?.platform;
-    if (!selectedAccountIds.includes(accountId) && platforms.length && platform !== platforms[0]) {
-      toast.info("Quick scheduling uses one platform. Open Compose to tailor content for multiple platforms."); return;
-    }
     setSelectedAccountIds((prev) => (prev.includes(accountId) ? prev.filter((id) => id !== accountId) : [...prev, accountId]));
   };
 
@@ -68,15 +73,16 @@ export function QuickScheduleDialog({
     }
     setGenerating(true);
     try {
-      const { data, error } = await supabase.functions.invoke<{ caption?: string; imageUrl?: string; error?: string }>(
+      const { data, error } = await supabase.functions.invoke<{ caption?: string; imageUrl?: string; error?: string; warning?: string }>(
         "generate-post",
-        { body: { title, websiteUrl } },
+        { body: { title, websiteUrl, withImage } },
       );
-      if (error) throw new Error(error.message);
+      if (error) throw new Error(await functionError(error,"AI generation failed"));
       if (data?.error) throw new Error(data.error);
-      if (!data?.caption || !data?.imageUrl) throw new Error("AI generation returned nothing usable");
+      if (!data?.caption) throw new Error("AI generation returned no caption");
       setCaption(data.caption);
-      setImageUrl(data.imageUrl);
+      setImageUrl(data.imageUrl ?? null);
+      if (data.warning) toast.warning(data.warning);
       toast.success("Generated — review below before scheduling");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "AI generation failed");
@@ -87,7 +93,7 @@ export function QuickScheduleDialog({
 
   const handleSchedule = async () => {
     if (scope.brandId === ALL_BRANDS) { toast.error("Choose a brand workspace before scheduling"); return; }
-    if (!date) return;
+    if (!date || uploading || generating) return;
     if (!caption.trim()) {
       toast.error("Generate or write a caption first");
       return;
@@ -98,24 +104,27 @@ export function QuickScheduleDialog({
     }
     setSaving(true);
     try {
-      const [hours, minutes] = time.split(":").map(Number);
-      const scheduledAt = new Date(date);
-      scheduledAt.setHours(hours, minutes, 0, 0);
-      if (scheduledAt.getTime() <= Date.now()) { toast.error("Choose a scheduling time in the future"); return; }
+      const scheduledAt = scheduleTimestamp(date, time);
+      if (selectedAccountIds.some(id => !accounts.some(account => account.id === id && account.is_active))) throw new Error("Choose active accounts from this brand");
+      if (platforms.includes("whatsapp")) throw new Error("Open Compose to configure WhatsApp recipients before scheduling");
+      const attachments = [...media, ...(imageUrl ? [imageUrl] : [])];
+      const issue = accounts.filter(account => selectedAccountIds.includes(account.id)).map(publishingAccessIssue).find(Boolean);
+      if (issue) throw new Error(issue);
+      for (const platform of platforms) validatePlatformDraft(platform, {content: caption, title, media_urls: attachments});
 
       await createPost.mutateAsync({
         title: title || null,
         content: caption,
-        media_urls: imageUrl ? [imageUrl] : [],
+        media_urls: attachments,
         platforms,
         connected_account_ids: selectedAccountIds,
         status: "scheduled",
-        scheduled_at: scheduledAt.toISOString(),
+        scheduled_at: scheduledAt,
       });
       onOpenChange(false);
       reset();
-    } catch {
-      // createPost's own onError already toasts
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not schedule this post");
     } finally {
       setSaving(false);
     }
@@ -144,6 +153,8 @@ export function QuickScheduleDialog({
             {generating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
             {generating ? "Generating…" : "Generate with AI"}
           </Button>
+          <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={withImage} onChange={event => setWithImage(event.target.checked)}/>Include an AI image (optional, slower)</label>
+          <MediaUploader urls={media} onChange={setMedia} onUploadingChange={setUploading}/>
 
           {imageUrl && <img src={imageUrl} alt="" className="aspect-video w-full rounded-lg object-cover" />}
 
@@ -160,7 +171,7 @@ export function QuickScheduleDialog({
 
           <div className="space-y-1.5">
             <Label>Platforms</Label>
-            <PlatformSelector accounts={accounts} selected={selectedAccountIds} onToggle={togglePlatform} />
+            <PlatformSelector accounts={accounts} selected={selectedAccountIds} onToggle={togglePlatform} onSelectAll={setSelectedAccountIds} />
           </div>
 
           <div className="space-y-1.5">
@@ -179,7 +190,7 @@ export function QuickScheduleDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleSchedule} disabled={saving}>
+          <Button onClick={handleSchedule} disabled={saving || uploading || generating}>
             {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Schedule post
           </Button>

@@ -1,61 +1,25 @@
 import { Link } from "react-router-dom";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
+import { Check } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { PLATFORM_CONFIGS } from "@/lib/platforms";
 import { cn } from "@/lib/utils";
 import type { ConnectedAccount } from "@/types/database";
+import { publishingAccessIssue } from "../../../supabase/functions/_shared/publishing-access";
 
-export function PlatformSelector({
-  accounts,
-  selected,
-  onToggle,
-}: {
-  accounts: ConnectedAccount[];
-  selected: string[];
-  onToggle: (accountId: string) => void;
+export function PlatformSelector({ accounts, selected, onToggle, onSelectAll }: {
+  accounts: ConnectedAccount[]; selected: string[]; onToggle: (accountId: string) => void;
+  onSelectAll?: (ids: string[]) => void;
 }) {
-  const connectedPlatforms = new Set(accounts.map((a) => a.platform));
-
-  if (connectedPlatforms.size === 0) {
-    return (
-      <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
-        No accounts connected yet.{" "}
-        <Link to="/accounts" className="font-medium text-primary underline-offset-2 hover:underline">
-          Connect one
-        </Link>{" "}
-        to start composing.
-      </p>
-    );
-  }
-
-  return (
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-2">
-      {accounts.filter((a) => a.is_active).map((account) => {
-        const config = PLATFORM_CONFIGS.find((p) => p.id === account.platform)!;
-        const isConnected = true;
-        const isSelected = selected.includes(account.id);
-        const Icon = config.icon;
-
-        return (
-          <label
-            key={account.id}
-            className={cn(
-              "flex items-center gap-2 rounded-lg border p-3 text-sm transition-colors",
-              !isConnected && "cursor-not-allowed opacity-40",
-              isConnected && "cursor-pointer hover:bg-accent",
-              isSelected && "border-primary bg-primary/5",
-            )}
-          >
-            <Checkbox
-              checked={isSelected}
-              disabled={!isConnected}
-              onCheckedChange={() => onToggle(account.id)}
-            />
-            <Icon className="h-4 w-4 shrink-0" style={{ color: config.color }} />
-            <Label className="cursor-pointer font-normal">{account.platform_display_name ?? account.platform_username ?? config.label} <span className="text-xs text-muted-foreground">({config.label})</span></Label>
-          </label>
-        );
-      })}
-    </div>
-  );
+  const active = accounts.filter(account => account.is_active);
+  const allSelected = active.length > 0 && active.every(account => selected.includes(account.id));
+  return <div className="space-y-3">
+    <div className="flex items-center justify-between gap-2"><p className="text-xs text-muted-foreground">{selected.length} selected · choose one or several pages</p>{onSelectAll && <Button type="button" size="sm" variant={allSelected ? "default" : "outline"} aria-pressed={allSelected} disabled={!active.length} onClick={() => onSelectAll(allSelected ? [] : active.map(account => account.id))}>{allSelected ? "Clear all" : "All"}</Button>}</div>
+    <div className="grid gap-3 sm:grid-cols-2">{PLATFORM_CONFIGS.map(config => {
+      const own = accounts.filter(account => account.platform === config.id);
+      const Icon = config.icon;
+      return <section key={config.id} className="space-y-2 rounded-xl border p-3"><p className="flex items-center gap-2 text-xs font-semibold"><Icon className="h-4 w-4" style={{color:config.color}}/>{config.label}</p>
+        {own.length ? own.map(account => <button key={account.id} type="button" aria-pressed={selected.includes(account.id)} disabled={!account.is_active} onClick={() => onToggle(account.id)} className={cn("flex w-full items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left text-sm transition hover:bg-accent disabled:opacity-50", selected.includes(account.id) && "border-primary bg-primary/5")}><span className="min-w-0"><span className="block truncate font-medium">{account.platform_display_name ?? account.platform_username ?? config.label}</span><span className="block text-xs text-muted-foreground">{publishingAccessIssue(account) ? "Publishing access needs attention" : "Connected"}</span></span>{selected.includes(account.id) && <Check className="h-4 w-4 shrink-0 text-primary"/>}</button>) : <Link to="/accounts" className="block rounded-lg border border-dashed p-2 text-xs text-muted-foreground hover:text-primary">Connect {config.label}</Link>}
+      </section>;
+    })}</div>
+  </div>;
 }

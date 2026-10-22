@@ -52,6 +52,10 @@ function BrandCard({
   platformStatus: ReturnType<typeof useConnectionStatus>["data"];
 }) {
   const mine = accounts.filter((a) => a.brand_id === brand.id);
+  const connectedPlatforms = new Set(mine.map(account => account.platform));
+  const orderedPlatforms = PLATFORM_CONFIGS.toSorted((a, b) =>
+    Number(connectedPlatforms.has(b.id as Platform)) - Number(connectedPlatforms.has(a.id as Platform)),
+  );
   const { connect, disconnect, sync, setSyncInterval, setBrand } = actions;
 
   return (
@@ -73,7 +77,7 @@ function BrandCard({
       </div>
 
       <div className="divide-y">
-        {PLATFORM_CONFIGS.map((config) => {
+        {orderedPlatforms.map((config) => {
           const account = mine.find((a) => a.platform === config.id);
           if (account) {
             return (

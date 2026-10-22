@@ -28,6 +28,7 @@ import Settings from "@/pages/Settings";
 import NotFound from "@/pages/NotFound";
 import Legal from "@/pages/Legal";
 import ManualPublish from "@/pages/ManualPublish";
+import Home from "@/pages/Home";
 import { BrandProvider } from "@/contexts/BrandContext";
 
 const queryClient = new QueryClient({
@@ -59,7 +60,7 @@ function HomeRoute() {
       </div>
     );
   }
-  return user ? <Navigate to="/dashboard" replace /> : <Landing />;
+  return user ? <Navigate to="/home" replace /> : <Landing />;
 }
 
 export default function App() {
@@ -72,6 +73,8 @@ export default function App() {
             <BrowserRouter>
               <Routes>
                 <Route path="/" element={<HomeRoute />} />
+                <Route path="/welcome" element={<Landing />} />
+                <Route path="/home" element={withLayout(<Home />)} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<Signup />} />
                 <Route path="/privacy" element={<Legal page="privacy" />} />

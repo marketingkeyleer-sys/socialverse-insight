@@ -11,6 +11,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 import { publishPost } from "../_shared/publish.ts";
+import { reconcileUploadPostResults } from "../_shared/uploadpost-publish.ts";
 
 const BATCH_SIZE = 20;
 
@@ -33,6 +34,7 @@ Deno.serve(async (req) => {
     // just one caller's own rows, so it can't go through the RLS-scoped
     // pattern every other function here uses.
     const admin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    await reconcileUploadPostResults(admin);
 
     const { data: due, error: dueErr } = await admin
       .from("sv_posts")

@@ -1,9 +1,9 @@
 import { NavLink } from "react-router-dom";
-import { BarChart3, FileText, LayoutDashboard, PenSquare, Settings } from "lucide-react";
+import { BarChart3, FileText, House, PenSquare, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const TABS = [
-  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/home", label: "Home", icon: House },
   { to: "/posts", label: "Posts", icon: FileText },
   { to: "/compose", label: "Compose", icon: PenSquare, primary: true },
   { to: "/analytics", label: "Analytics", icon: BarChart3 },

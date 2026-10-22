@@ -23,6 +23,8 @@ import { platformPostContent, validatePlatformDraft, type PlatformDraft } from "
 import { ALL_BRANDS, UNGROUPED } from "@/lib/brandScope";
 import { getPlatformConfig } from "@/lib/platforms";
 import { manualPlatform } from "@/lib/manualPublishing";
+import { scheduleTimestamp } from "@/lib/scheduling";
+import { publishingAccessIssue } from "../../supabase/functions/_shared/publishing-access";
 
 export default function Compose() {
   const scope = useBrandScope();
@@ -43,10 +45,11 @@ export default function Compose() {
   const [mediaUrls, setMediaUrls] = useState<string[]>([]);
   const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
   const selectedPlatforms = [...new Set(accounts.filter((a) => selectedAccountIds.includes(a.id)).map((a) => a.platform))] as Platform[];
-  const [scheduleMode, setScheduleMode] = useState<"now" | "schedule">("now");
+  const [scheduleMode, setScheduleMode] = useState<"now" | "schedule">(params.get("mode") === "schedule" ? "schedule" : "now");
   const [date, setDate] = useState<Date | undefined>(undefined);
   const [time, setTime] = useState("09:00");
   const [saving, setSaving] = useState(false);
+  const [pendingUploads, setPendingUploads] = useState(0);
   const [whatsappOptions, setWhatsappOptions] = useState<WhatsAppOptions>({});
   const whatsappAccount = accounts.find((a) => a.platform === "whatsapp" && selectedAccountIds.includes(a.id));
 
@@ -89,18 +92,11 @@ export default function Compose() {
     ? Math.min(...selectedPlatforms.map(getPlatformCharLimit))
     : 5000;
 
-  const scheduledAt = () => {
-    if (scheduleMode === "now" || !date) return null;
-    const [hours, minutes] = time.split(":").map(Number);
-    const combined = new Date(date);
-    combined.setHours(hours, minutes, 0, 0);
-    return combined.toISOString();
-  };
-
   const handleSave = async (status: "draft" | "scheduled" | "published") => {
+    if (pendingUploads) { toast.error("Wait for the media uploads to finish before saving"); return; }
     if (editingId && !existingPost) { toast.error("This post is not available in the selected brand workspace"); return; }
     if (scope.brandId === ALL_BRANDS) { toast.error("Choose one brand workspace before composing a post"); return; }
-    if (selectedAccountIds.some((id) => !accounts.some((account) => account.id === id))) { toast.error("This post contains an account outside the selected brand. Choose this brand's destinations."); return; }
+    if (selectedAccountIds.some((id) => !accounts.some((account) => account.id === id && account.is_active))) { toast.error("Choose active destination accounts from this brand. Reconnect unavailable accounts first."); return; }
     if (existingPost?.status === "publishing" || existingPost?.status === "published") {
       toast.error("Duplicate this post to create a new version. Publishing or published posts cannot be edited here.");
       return;
@@ -109,14 +105,17 @@ export default function Compose() {
       toast.error("Select at least one platform");
       return;
     }
+    if (status !== "draft") {
+      const issue = accounts.filter(account => selectedAccountIds.includes(account.id)).map(publishingAccessIssue).find(Boolean);
+      if (issue) { toast.error(issue); return; }
+    }
     if (status === "scheduled" && !date) {
       toast.error("Pick a date and time to schedule");
       return;
     }
-    if (status === "scheduled" && new Date(scheduledAt()!).getTime() <= Date.now()) {
-      toast.error("Choose a scheduling time in the future");
-      return;
-    }
+    let scheduledTime: string | null = null;
+    try { if (status === "scheduled") scheduledTime = scheduleTimestamp(date, time); }
+    catch (error) { toast.error(error instanceof Error ? error.message : "Invalid schedule"); return; }
     const drafts = selectedPlatforms.map((platform) => ({ platform, draft: platformPostContent({ title, content, media_urls: mediaUrls, platform_content: platformContent }, platform) }));
     if (!drafts.length && !content.trim() && !mediaUrls.length) { toast.error("Add text or media to your post"); return; }
     try { for (const { platform, draft } of drafts) { if (status !== "draft") validatePlatformDraft(platform, draft); } }
@@ -149,7 +148,7 @@ export default function Compose() {
         // "publishing" until the real per-platform outcome comes back below —
         // publish-post is what actually flips this to published/partially_failed/failed.
         status: status === "published" ? ("draft" as const) : status,
-        scheduled_at: status === "scheduled" ? scheduledAt() : null,
+        scheduled_at: scheduledTime,
         published_at: null,
       };
 
@@ -163,7 +162,7 @@ export default function Compose() {
 
       if (status === "published" && postId) {
         const { data, error } = await supabase.functions.invoke<{
-          overallStatus?: "published" | "partially_failed" | "failed";
+          overallStatus?: "published" | "partially_failed" | "failed" | "publishing";
           results?: { platform: string; status: string; errorMessage: string | null }[];
           error?: string;
         }>("publish-post", { body: { postId } });
@@ -171,7 +170,9 @@ export default function Compose() {
         if (data?.error) throw new Error(data.error);
 
         const failed = data?.results?.filter((r) => r.status === "failed") ?? [];
-        if (data?.overallStatus === "published") {
+        if (data?.overallStatus === "publishing") {
+          toast.info("Publishing is processing. Track the confirmed result in Posts → Publishing.");
+        } else if (data?.overallStatus === "published") {
           toast.success("Published to all selected platforms");
         } else if (data?.overallStatus === "partially_failed") {
           toast.warning(`Published, but failed on: ${failed.map((f) => f.platform).join(", ")}`);
@@ -183,11 +184,11 @@ export default function Compose() {
         toast.success(status === "draft" ? "Draft saved" : "Post scheduled");
       }
 
-      await logActivity.mutateAsync({
+      void logActivity.mutateAsync({
         action: status === "draft" ? "post_created" : status === "scheduled" ? "post_created" : "post_published",
         entityType: "post",
         entityId: postId,
-      });
+      }).catch(() => { /* The post was saved even if activity logging is unavailable. */ });
 
       navigate("/posts");
     } catch (error) {
@@ -212,14 +213,15 @@ export default function Compose() {
               <CardTitle className="text-base">Platforms</CardTitle>
             </CardHeader>
             <CardContent>
-              <PlatformSelector accounts={accounts} selected={selectedAccountIds} onToggle={togglePlatform} />
+              <PlatformSelector accounts={accounts} selected={selectedAccountIds} onToggle={togglePlatform} onSelectAll={(ids) => { for (const id of ids.filter(id => !selectedAccountIds.includes(id))) togglePlatform(id); setSelectedAccountIds(ids); }} />
             </CardContent>
           </Card>
 
           <AIComposeAssist
             onGenerated={({ caption, imageUrl }) => {
               setContent(caption);
-              setMediaUrls((prev) => [...prev, imageUrl]);
+              if (imageUrl) setMediaUrls((prev) => [...prev, imageUrl]);
+              if (selectedPlatforms.length === 1) setPlatformContent(previous => ({...previous, [selectedPlatforms[0]]: {content:caption, title, media_urls:imageUrl ? [imageUrl] : previous[selectedPlatforms[0]]?.media_urls ?? []}}));
             }}
           />
 
@@ -237,7 +239,7 @@ export default function Compose() {
             return <Card key={platform} className="overflow-hidden"><CardHeader><div className="flex items-center gap-2"><config.icon className="h-5 w-5" style={{ color: config.color }} /><CardTitle className="text-base">{config.label} content</CardTitle></div><p className="text-xs text-muted-foreground">Only used for your selected {config.label} account{selectedAccountIds.filter((id) => accounts.find((a) => a.id === id)?.platform === platform).length > 1 ? "s" : ""}.</p></CardHeader><CardContent className="space-y-4">
               <div><label htmlFor={`caption-${platform}`} className="text-sm font-medium">Caption / description</label><textarea id={`caption-${platform}`} value={draft.content} onChange={(e) => change({ content: e.target.value })} className="mt-2 min-h-32 w-full rounded-lg border bg-background p-3 text-sm" placeholder={`Write a caption for ${config.label}…`} /><p className="mt-1 text-right text-xs text-muted-foreground">{draft.content.length.toLocaleString()} / {config.characterLimit.toLocaleString()}</p></div>
               {platform === "youtube" && <div><label htmlFor="youtube-title" className="text-sm font-medium">YouTube video title</label><input id="youtube-title" value={draft.title ?? ""} maxLength={100} onChange={(e) => change({ title: e.target.value })} className="mt-2 w-full rounded-lg border bg-background p-2 text-sm" /></div>}
-              <MediaUploader urls={draft.media_urls} onChange={(urls) => change({ media_urls: urls })} />
+              <MediaUploader urls={draft.media_urls} onChange={(urls) => change({ media_urls: urls })} onUploadingChange={busy => setPendingUploads(count => count + (busy ? 1 : -1))} />
               <Button type="button" size="sm" variant="outline" onClick={() => change({ content, media_urls: mediaUrls, title })}>Copy working draft to {config.label}</Button>
             </CardContent></Card>;
           })}
@@ -258,7 +260,7 @@ export default function Compose() {
               <CardTitle className="text-base">Working draft media · optional</CardTitle>
             </CardHeader>
             <CardContent>
-              <MediaUploader urls={mediaUrls} onChange={setMediaUrls} />
+              <MediaUploader urls={mediaUrls} onChange={setMediaUrls} onUploadingChange={busy => setPendingUploads(count => count + (busy ? 1 : -1))} />
             </CardContent>
           </Card>
 
@@ -298,17 +300,17 @@ export default function Compose() {
       </div>
 
       <div className="sticky bottom-4 flex flex-wrap justify-end gap-2 rounded-xl border bg-card p-3 shadow-lg">
-        <Button variant="outline" onClick={() => handleSave("draft")} disabled={saving || scope.brandId === ALL_BRANDS}>
+        <Button variant="outline" onClick={() => handleSave("draft")} disabled={saving || pendingUploads > 0 || scope.brandId === ALL_BRANDS}>
           {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Save draft
         </Button>
         {scheduleMode === "schedule" ? (
-          <Button onClick={() => handleSave("scheduled")} disabled={saving || scope.brandId === ALL_BRANDS}>
+          <Button onClick={() => handleSave("scheduled")} disabled={saving || pendingUploads > 0 || scope.brandId === ALL_BRANDS}>
             {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Schedule
           </Button>
         ) : (
-          <Button onClick={() => handleSave("published")} disabled={saving || scope.brandId === ALL_BRANDS}>
+          <Button onClick={() => handleSave("published")} disabled={saving || pendingUploads > 0 || scope.brandId === ALL_BRANDS}>
             {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Publish now
           </Button>

@@ -9,6 +9,7 @@ import { createAndRunBroadcast } from "./whatsapp.ts";
 import { selectPublishTargets } from "./publish-policy.ts";
 import { publishLinkedInText } from "./linkedin.ts";
 import { UPLOADPOST_SCOPE } from "./uploadpost.ts";
+import { publishUploadPostPage } from "./uploadpost-publish.ts";
 import { platformPostContent, validatePlatformDraft } from "./content-policy.ts";
 
 const GRAPH_VERSION = "v21.0";
@@ -23,7 +24,8 @@ function publishError(error: unknown): string {
 export interface TargetResult {
   connectedAccountId?: string;
   platform: string;
-  status: "published" | "failed";
+  status: "published" | "failed" | "publishing";
+  providerRequestId?: string;
   platformPostId: string | null;
   publishedUrl: string | null;
   errorMessage: string | null;
@@ -31,7 +33,7 @@ export interface TargetResult {
 
 export interface PublishOutcome {
   results: TargetResult[];
-  overallStatus: "published" | "partially_failed" | "failed";
+  overallStatus: "published" | "partially_failed" | "failed" | "publishing";
 }
 
 async function publishToFacebook(
@@ -310,7 +312,11 @@ export async function publishPost(
       }
       if (platform === "linkedin" || platform === "linkedin_page") {
         try {
-          if (account.scopes?.includes(UPLOADPOST_SCOPE)) throw new Error("This Page is connected through Upload-Post. Publishing from SocialVerse is not enabled for this provider yet. Publish using Upload-Post.");
+          if (account.scopes?.includes(UPLOADPOST_SCOPE)) {
+            const receipt = await publishUploadPostPage(account,userId,post.id,targetPost.content,targetPost.media_urls ?? []);
+            results.push({platform,status:receipt.pending ? "publishing" : "published",platformPostId:receipt.id,publishedUrl:receipt.url,providerRequestId:receipt.requestId,errorMessage:null});
+            return;
+          }
           if (targetPost.media_urls?.length) throw new Error("LinkedIn currently supports text posts here. Remove media or publish this destination separately.");
           if (!account.access_token_ciphertext || !account.token_iv) throw new Error("Reconnect LinkedIn to enable publishing");
           if (account.token_expires_at && new Date(account.token_expires_at).getTime() <= Date.now()) throw new Error("LinkedIn authorization expired. Reconnect to publish.");
@@ -430,6 +436,7 @@ export async function publishPost(
         platform_post_id: r.platformPostId,
         published_url: r.publishedUrl,
         error_message: r.errorMessage,
+        engagement_data: r.providerRequestId ? {uploadpost_request_id:r.providerRequestId} : {},
         published_at: r.status === "published" ? new Date().toISOString() : null,
       });
       if (error) throw new Error("Could not record the publish result. Check the platform before retrying.");
@@ -441,7 +448,7 @@ export async function publishPost(
 
   const publishedCount = results.filter((r) => r.status === "published").length;
   const overallStatus: PublishOutcome["overallStatus"] =
-    publishedCount === results.length ? "published" : publishedCount > 0 ? "partially_failed" : "failed";
+    results.some(result => result.status === "publishing") ? "publishing" : publishedCount === results.length ? "published" : publishedCount > 0 ? "partially_failed" : "failed";
   const { error: statusError } = await supabase
     .from("sv_posts")
     .update({ status: overallStatus, published_at: publishedCount > 0 ? new Date().toISOString() : null })
@@ -454,7 +461,7 @@ export async function publishPost(
   // toast) when the cron is what triggered it.
   await supabase.from("sv_activity_log").insert({
     user_id: userId,
-    action: overallStatus === "published" ? "post_published" : overallStatus === "partially_failed" ? "post_partially_failed" : "post_failed",
+    action: overallStatus === "publishing" ? "post_publishing" : overallStatus === "published" ? "post_published" : overallStatus === "partially_failed" ? "post_partially_failed" : "post_failed",
     entity_type: "post",
     entity_id: post.id,
     metadata: {

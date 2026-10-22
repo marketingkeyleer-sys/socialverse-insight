@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { uploadPostBinding, verifiedUploadPostPage, uploadPostConnectionRow } from '../supabase/functions/_shared/uploadpost.ts';
 import { decryptToken } from '../supabase/functions/_shared/crypto.ts';
 import { syncUploadPostPage } from '../supabase/functions/_shared/uploadpost-sync.ts';
+import {confirmedLinkedInResult, publishUploadPostPage} from '../supabase/functions/_shared/uploadpost-publish.ts';
 
 const binding = { userId: 'owner', brandId: 'brand', profile: 'robotverse', pageId: 'urn:li:organization:108154398' };
 const env = new Map([['UPLOAD_POST_API_KEY', 'server-only-secret'], ['OAUTH_ENCRYPTION_KEY', 'test-encryption-key'], ['UPLOAD_POST_LINKEDIN_BINDINGS', JSON.stringify([binding])]]);
@@ -78,4 +79,38 @@ test('monitoring sends an explicit Page destination and saves only the owning ac
     await assert.rejects(syncUploadPostPage(db, 'other-owner', { ...row, id: 'account-1' }, 'account-1'), /another user/);
     assert.equal(writes.length, 2);
   } finally { globalThis.fetch = original; }
+});
+
+test('provider receipts and queued successes are never mistaken for publication', () => {
+  assert.equal(confirmedLinkedInResult({success:true,request_id:'request'}),null);
+  assert.equal(confirmedLinkedInResult({results:{linkedin:{success:true,status:'queued',url:'https://www.linkedin.com/feed/update/123'}}}),null);
+  assert.equal(confirmedLinkedInResult({results:{linkedin:{success:true,url:'https://evil.example/post/1'}}}),null);
+  assert.equal(confirmedLinkedInResult({results:{linkedin:{success:true,skipped:true,url:'https://www.linkedin.com/feed/update/123'}}}),null);
+  assert.equal(confirmedLinkedInResult({results:{linkedin:{success:true,url:'https://www.linkedin.com/feed/update/urn:li:share:123'}}}).id,'https://www.linkedin.com/feed/update/urn:li:share:123');
+});
+
+test('provider publishing uses owned media, explicit Page and stable idempotency', async () => {
+  const original=globalThis.fetch;
+  env.set('SUPABASE_URL','https://project.supabase.co');
+  const requests=[];
+  globalThis.fetch=async (url,options) => {
+    if (options?.method === 'POST') {requests.push(options);return Response.json({success:true,request_id:options.body.get('request_id')});}
+    return Response.json(url.includes('linkedin-page')
+      ? {success:true,selected_page_id:binding.pageId,pages:[{id:binding.pageId,name:'RobotVerse'}]}
+      : {success:true,profile:{username:'robotverse',social_accounts:{linkedin:{username:'member-123'}}}});
+  };
+  try {
+    const account={...await uploadPostConnectionRow(binding),id:'account-1'};
+    const media=['https://project.supabase.co/storage/v1/object/public/sv-media/owner/photo.png'];
+    const first=await publishUploadPostPage(account,'owner','post-1','Caption',media);
+    const second=await publishUploadPostPage(account,'owner','post-1','Caption',media);
+    assert.equal(first.pending,true);
+    assert.equal(first.requestId,second.requestId);
+    assert.equal(requests[0].body.get('target_linkedin_page_id'),binding.pageId);
+    assert.equal(requests[0].body.get('platform[]'),'linkedin');
+    assert.equal(requests[0].body.get('user'),'robotverse');
+    assert.equal(requests[0].headers['Idempotency-Key'],first.requestId);
+    await assert.rejects(publishUploadPostPage(account,'owner','post-1','Caption',['https://evil.example/photo.png']),/own SocialVerse/);
+    assert.equal(requests.length,2);
+  } finally {globalThis.fetch=original;}
 });

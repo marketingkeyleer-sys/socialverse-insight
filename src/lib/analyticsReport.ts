@@ -25,13 +25,15 @@ export function channelReport(accounts: ConnectedAccount[], snapshots: Analytics
     const current = history.filter(s => s.metric_date >= dateKey(range.from) && s.metric_date <= dateKey(range.to));
     const baseline = history.filter(s => s.metric_date >= dateKey(previous.from) && s.metric_date <= dateKey(previous.to)).at(-1);
     const latest = current.at(-1);
+    const connectionDate = account.last_synced_at ?? account.connected_at;
+    const providerObservation = account.platform === "linkedin_page" && account.scopes?.includes("socialverse:upload-post") && connectionDate && new Date(connectionDate) >= range.from && new Date(connectionDate) <= range.to;
     const ownPosts = posts.filter(p => p.connected_account_id === account.id);
     const selectedPosts = postsInRange(ownPosts, range);
     const previousPosts = postsInRange(ownPosts, previous);
     const reachValues = selectedPosts.filter(p => p.reach !== null);
     const previousReach = previousPosts.filter(p => p.reach !== null);
     const engagement = (items: PlatformPost[]) => items.reduce((sum,p) => sum + p.likes_count + p.comments_count + p.shares_count, 0);
-    return { account, followers: latest?.followers ?? null, observedDate: latest?.metric_date,
+    return { account, followers: latest?.followers ?? (providerObservation ? account.followers_count : null), observedDate: latest?.metric_date ?? (providerObservation ? dateKey(new Date(connectionDate)) : undefined),
       growth: latest && baseline ? latest.followers - baseline.followers : null,
       followersChange: percentChange(latest?.followers ?? null, baseline?.followers ?? null),
       posts: selectedPosts.length, postsChange: percentChange(selectedPosts.length, previousPosts.length),

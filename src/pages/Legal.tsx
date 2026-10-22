@@ -1,14 +1,16 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { APP_NAME } from "@/lib/constants";
 
 const supportEmail = "marketingkeyleer@gmail.com";
 
 export default function Legal({ page }: { page: "privacy" | "terms" }) {
   const privacy = page === "privacy";
+  const navigate = useNavigate();
   return (
     <main className="min-h-screen bg-background px-5 py-12 text-foreground">
       <article className="mx-auto max-w-3xl space-y-6 leading-7">
         <nav aria-label="Legal navigation" className="flex flex-wrap gap-5 text-sm text-primary underline">
+          <button onClick={() => window.history.state?.idx > 0 ? navigate(-1) : navigate("/")}>← Back</button>
           <Link to="/">{APP_NAME}</Link><Link to="/privacy">Privacy policy</Link><Link to="/terms">Terms of service</Link>
         </nav>
         <header><h1 className="text-3xl font-semibold">{privacy ? "Privacy policy" : "Terms of service"}</h1><p className="mt-2 text-sm text-muted-foreground">Last updated: 20 October 2026</p></header>

@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { FunctionsHttpError } from "@supabase/supabase-js";
 import { useAuth } from "@/hooks/useAuth";
 import type { Platform, PostStatus, TablesInsert, TablesUpdate } from "@/types/database";
+import { POST_CACHE_KEYS } from "@/lib/scheduling";
 
 export interface PostFilters {
   status?: PostStatus;
@@ -19,6 +20,9 @@ export function usePosts(filters: PostFilters = {}, page = 0) {
   const { user } = useAuth();
   const scope = useBrandScope();
   const queryClient = useQueryClient();
+  const refreshPostViews = () => {
+    for (const key of POST_CACHE_KEYS) void queryClient.invalidateQueries({ queryKey: [key] });
+  };
   const listKey = ["posts", user?.id, scope.brandId, scope.accountIds, filters, page];
 
   const list = useQuery({
@@ -41,6 +45,7 @@ export function usePosts(filters: PostFilters = {}, page = 0) {
       return { posts: data.map((post) => ({ ...post, sv_post_platform_results: post.sv_post_platform_results.filter((result) => scope.brandId === ALL_BRANDS || (result.connected_account_id !== null && scope.accountIds.includes(result.connected_account_id))) })), total: count ?? 0 };
     },
     enabled: Boolean(user?.id) && scope.ready,
+    refetchInterval: 30_000,
   });
 
   const createPost = useMutation({
@@ -53,8 +58,8 @@ export function usePosts(filters: PostFilters = {}, page = 0) {
       if (error) throw error;
       return data;
     },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["posts", user?.id] });
+    onSuccess: () => {
+      refreshPostViews();
       toast.success("Post saved");
     },
     onError: (error: Error) => toast.error(error.message || "Could not save post"),
@@ -66,8 +71,8 @@ export function usePosts(filters: PostFilters = {}, page = 0) {
       if (error) throw error;
       return data;
     },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["posts", user?.id] });
+    onSuccess: () => {
+      refreshPostViews();
       toast.success("Post updated");
     },
     onError: (error: Error) => toast.error(error.message || "Could not update post"),
@@ -78,8 +83,8 @@ export function usePosts(filters: PostFilters = {}, page = 0) {
       const { error } = await supabase.from("sv_posts").delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["posts", user?.id] });
+    onSuccess: () => {
+      refreshPostViews();
       toast.success("Post deleted");
     },
     onError: (error: Error) => toast.error(error.message || "Could not delete post"),
@@ -108,8 +113,8 @@ export function usePosts(filters: PostFilters = {}, page = 0) {
       if (error) throw error;
       return data;
     },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["posts", user?.id] });
+    onSuccess: () => {
+      refreshPostViews();
       toast.success("Post duplicated");
     },
     onError: (error: Error) => toast.error(error.message || "Could not duplicate post"),
@@ -128,7 +133,8 @@ export function usePosts(filters: PostFilters = {}, page = 0) {
     onSuccess: async (data) => {
       await queryClient.invalidateQueries({ queryKey: ["posts"] });
       await queryClient.invalidateQueries({ queryKey: ["post"] });
-      if (data.overallStatus === "published") toast.success("All destinations published");
+      if (data.overallStatus === "publishing") toast.info("The provider is processing this post. Check Publishing for confirmation.");
+      else if (data.overallStatus === "published") toast.success("All destinations published");
       else toast.warning("Some destinations failed. Review the results below.");
     },
     onError: (error: Error) => toast.error(error.message),
@@ -154,5 +160,6 @@ export function usePost(id: string | undefined) {
       return { ...data, sv_post_platform_results: data.sv_post_platform_results.filter((result) => scope.brandId === ALL_BRANDS || (result.connected_account_id !== null && scope.accountIds.includes(result.connected_account_id))) };
     },
     enabled: Boolean(id) && Boolean(user?.id) && scope.ready,
+    refetchInterval: 15_000,
   });
 }

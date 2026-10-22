@@ -12,8 +12,10 @@ const TABS: { value: PostStatus | "all"; label: string }[] = [
   { value: "all", label: "All" },
   { value: "draft", label: "Drafts" },
   { value: "scheduled", label: "Scheduled" },
+  { value: "publishing", label: "Publishing" },
   { value: "published", label: "Published" },
   { value: "failed", label: "Failed" },
+  { value: "partially_failed", label: "Partly published" },
 ];
 
 const EMPTY_MESSAGES: Record<PostStatus | "all", string> = {
@@ -77,7 +79,9 @@ export default function Posts() {
         </TabsList>
       </Tabs>
 
-      <PostFilters search={search} onSearchChange={setSearch} platform={platform} onPlatformChange={setPlatform} />
+      <p className="text-sm text-muted-foreground">{TABS.find(item => item.value === tab)?.label}: {total} post{total === 1 ? "" : "s"}. Drafts are saved ideas; scheduled posts are queued for automatic publishing.</p>
+      <PostFilters search={search} onSearchChange={value => {setSearch(value);setPage(0);setSelected(new Set());}} platform={platform} onPlatformChange={value => {setPlatform(value);setPage(0);setSelected(new Set());}} />
+      {list.error && <p role="alert" className="text-sm text-destructive">Could not load posts. <button className="underline" onClick={() => void list.refetch()}>Retry</button></p>}
 
       <BulkActions count={selected.size} onClear={() => setSelected(new Set())} onDelete={handleBulkDelete} />
 
@@ -98,11 +102,9 @@ export default function Posts() {
         />
       )}
 
-      {total > (page + 1) * 20 && (
+      {(page > 0 || total > (page + 1) * 20) && (
         <div className="flex justify-center">
-          <Button variant="outline" onClick={() => setPage((p) => p + 1)}>
-            Load more
-          </Button>
+          <Button variant="outline" disabled={page === 0} onClick={() => {setPage(p => p - 1);setSelected(new Set());}}>Previous</Button><span className="px-3 py-2 text-sm">Page {page + 1}</span><Button variant="outline" disabled={total <= (page + 1) * 20} onClick={() => {setPage(p => p + 1);setSelected(new Set());}}>Next</Button>
         </div>
       )}
     </div>
