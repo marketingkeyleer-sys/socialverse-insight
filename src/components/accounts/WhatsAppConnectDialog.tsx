@@ -24,7 +24,7 @@ export function WhatsAppConnectDialog({
 }) {
   const connect = useWhatsAppConnect();
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"bridge" | "cloud">("cloud");
+  const [mode, setMode] = useState<"bridge" | "cloud">("bridge");
   const { data: status } = useConnectionStatus();
   const bridgeUnavailable = status?.platforms.whatsapp?.ready === false;
 
@@ -32,7 +32,7 @@ export function WhatsAppConnectDialog({
   const [wabaId, setWabaId] = useState("");
   const [accessToken, setAccessToken] = useState("");
 
-  const ready = mode === "bridge" ? !bridgeUnavailable : (phoneNumberId.trim() && wabaId.trim() && accessToken.trim());
+  const ready = mode === "bridge" ? status?.platforms.whatsapp?.ready === true : (phoneNumberId.trim() && wabaId.trim() && accessToken.trim());
 
   function submit() {
     const input =

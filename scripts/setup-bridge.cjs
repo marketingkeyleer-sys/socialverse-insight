@@ -21,5 +21,5 @@ if (!fs.existsSync(envFile)) {
   const key = crypto.randomBytes(32).toString("hex");
   const callback = projectUrl ? `${projectUrl.replace(/\/$/, "")}/functions/v1/whatsapp-webhook` : "";
   fs.writeFileSync(envFile, `BRIDGE_API_KEY=${key}\nCALLBACK_URL=${callback}\nMAX_SESSIONS=10\nDATA_DIR=./data\nPORT=3000\n`, { mode: 0o600 });
-  console.log(`Created whatsapp-bridge/.env. Your bridge key (needed once for the Supabase secret):\n  ${key}`);
+  console.log('Created private whatsapp-bridge/.env. The bridge key is kept in that file and is never printed.');
 }

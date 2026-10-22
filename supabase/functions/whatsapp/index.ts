@@ -30,7 +30,7 @@ import {
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "no-store" },
   });
 }
 
@@ -53,10 +53,16 @@ Deno.serve(async (req) => {
         .from("sv_connected_accounts")
         .select("*")
         .eq("id", accountId)
+        .eq("user_id", userId)
         .eq("platform", "whatsapp")
         .single();
       if (!data) throw new Error("WhatsApp account not found");
       return data;
+    }
+
+    if (body.action === "connect" && body.brandId) {
+      const { data: brand } = await supabase.from("sv_brands").select("id").eq("id", body.brandId).eq("user_id", userId).maybeSingle();
+      if (!brand) throw new Error("Choose one of your own brands before connecting WhatsApp.");
     }
 
     async function assertRoomForAnotherAccount() {
@@ -71,7 +77,16 @@ Deno.serve(async (req) => {
 
     if (body.action === "connect" && body.mode === "bridge") {
       // Fail early, and clearly, if the operator hasn't set the service up.
-      await bridgeRequest("/health");
+      await bridgeRequest("/api/info");
+      // Resume an unfinished link rather than filling the plan with pending rows.
+      let pendingQuery = supabase.from("sv_connected_accounts").select("*").eq("user_id", userId)
+        .eq("platform", "whatsapp").eq("metadata->>mode", "bridge").eq("is_active", false);
+      pendingQuery = body.brandId ? pendingQuery.eq("brand_id", body.brandId) : pendingQuery.is("brand_id", null);
+      const { data: pending } = await pendingQuery.order("created_at", { ascending: false }).limit(1);
+      if (pending?.[0]) {
+        const status = await bridgeRequest(sessionPath(pending[0], "start"), { method: "POST", body: {} });
+        return json({ ok: true, accountId: pending[0].id, state: status.state });
+      }
       await assertRoomForAnotherAccount();
       const id = crypto.randomUUID();
       const { data: account, error } = await supabase
@@ -84,7 +99,7 @@ Deno.serve(async (req) => {
           platform_username: null,
           platform_display_name: "WhatsApp (linking…)",
           scopes: [],
-          is_active: true,
+          is_active: false,
           metadata: { mode: "bridge" },
           brand_id: body.brandId ?? null,
           last_synced_at: new Date().toISOString(),
@@ -97,8 +112,8 @@ Deno.serve(async (req) => {
         );
       }
       // Start the session so a QR is ready by the time the page opens.
-      await bridgeRequest(sessionPath(account, "start"), { method: "POST", body: {} }).catch(() => {});
-      return json({ ok: true, accountId: account.id, state: "starting" });
+      const status = await bridgeRequest(sessionPath(account, "start"), { method: "POST", body: {} });
+      return json({ ok: true, accountId: account.id, state: status.state });
     }
 
     if (body.action === "connect") {
@@ -168,14 +183,17 @@ Deno.serve(async (req) => {
       if (status.state === "ready" && status.account?.phone) {
         const phone = `+${status.account.phone}`;
         const name = status.account.name || "WhatsApp";
-        if (account.platform_username !== phone || account.platform_display_name !== name) {
+        if (!account.is_active || account.platform_username !== phone || account.platform_display_name !== name) {
           await supabase
             .from("sv_connected_accounts")
             .update({ platform_username: phone, platform_display_name: name, is_active: true })
             .eq("id", account.id);
         }
       }
-      return json({ state: status.state, qr: status.qr ?? null, account: status.account ?? null, error: status.error || null });
+      if (["disconnected", "error"].includes(status.state) && account.is_active) {
+        await supabase.from("sv_connected_accounts").update({ is_active: false }).eq("id", account.id).eq("user_id", userId);
+      }
+      return json({ state: status.state, qr: status.qr ?? null, account: status.account ?? null, error: status.error || null, engine: status.engine, capabilities: status.capabilities });
     }
 
     if (body.action === "bridge-session") {
@@ -184,7 +202,8 @@ Deno.serve(async (req) => {
       const op = ({ start: "start", restart: "restart", logout: "logout" } as Record<string, string>)[String(body.op)];
       if (!op) throw new Error("Unknown session action");
       const status = await bridgeRequest(sessionPath(account, op), { method: "POST", body: {} });
-      return json({ state: status.state, qr: status.qr ?? null, account: status.account ?? null, error: status.error || null });
+      if (op === "logout") await supabase.from("sv_connected_accounts").update({ is_active: false }).eq("id", account.id).eq("user_id", userId);
+      return json({ state: status.state, qr: status.qr ?? null, account: status.account ?? null, error: status.error || null, engine: status.engine, capabilities: status.capabilities });
     }
 
     if (body.action === "bridge-pairing-code") {

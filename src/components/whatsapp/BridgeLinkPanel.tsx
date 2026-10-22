@@ -70,8 +70,8 @@ export function BridgeLinkPanel({ accountId }: { accountId: string }) {
                 <AlertDialogHeader>
                   <AlertDialogTitle>Unlink this WhatsApp number?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    The bridge logs out of this number's linked device. Broadcasts still waiting to send will stop until you
-                    scan a QR code again.
+                    This removes the saved connection from SocialVerse and stops waiting broadcasts. Also remove this
+                    device in your phone’s WhatsApp → Linked devices to revoke its access.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -102,7 +102,7 @@ export function BridgeLinkPanel({ accountId }: { accountId: string }) {
             <Button size="sm" variant="outline" disabled={busy} onClick={() => session.mutate("restart")}>
               Get a fresh code
             </Button>
-            <div className="mt-2 space-y-2 border-t pt-3">
+            {status.capabilities?.pairingCode !== false && <div className="mt-2 space-y-2 border-t pt-3">
               <p className="font-medium">On this phone and can't scan?</p>
               {pairingCode.data ? (
                 <>
@@ -127,7 +127,7 @@ export function BridgeLinkPanel({ accountId }: { accountId: string }) {
                   </Button>
                 </div>
               )}
-            </div>
+            </div>}
           </div>
         </CardContent>
       </Card>

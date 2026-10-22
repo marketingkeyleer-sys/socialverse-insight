@@ -2,6 +2,8 @@
 const fs = require('node:fs');
 const path = require('node:path');
 require('dotenv/config');
+// Do not advertise a usable bridge when its selected engine cannot load.
+if (process.env.WHATSAPP_ENGINE === 'open-wa') require('@open-wa/wa-automate');
 const { SessionManager } = require('./lib/sessions');
 const { JobQueue } = require('./lib/jobs');
 const { createApp } = require('./lib/app');
@@ -97,3 +99,4 @@ async function shutdown() {
 }
 process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);
+process.on('message', (message) => { if (message === 'shutdown') void shutdown(); });

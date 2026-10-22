@@ -201,6 +201,10 @@ export async function bridgeRequest(
 ): Promise<any> {
   const base = Deno.env.get("WHATSAPP_BRIDGE_URL");
   if (!base) throw new Error("WhatsApp QR linking isn't set up on this server yet (WHATSAPP_BRIDGE_URL is missing)");
+  const endpoint = new URL(base);
+  if (endpoint.protocol !== "https:" || endpoint.username || endpoint.password || endpoint.search || endpoint.hash || endpoint.pathname !== "/") {
+    throw new Error("WhatsApp bridge requires a valid HTTPS origin.");
+  }
   let res: Response;
   try {
     res = await fetch(`${base.replace(/\/$/, "")}${path}`, {
@@ -208,6 +212,7 @@ export async function bridgeRequest(
       headers: { Authorization: `Bearer ${bridgeKey()}`, ...(init.body ? { "Content-Type": "application/json" } : {}) },
       body: init.body ? JSON.stringify(init.body) : undefined,
       signal: AbortSignal.timeout(20_000),
+      redirect: "error",
     });
   } catch (error) {
     if (error instanceof Error && error.message.includes("isn't set up")) throw error;

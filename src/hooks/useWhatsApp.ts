@@ -57,6 +57,8 @@ export interface BridgeStatus {
   qr: string | null;
   account: { name: string; phone: string } | null;
   error: string | null;
+  engine?: string;
+  capabilities?: { pairingCode: boolean; remoteLogout: boolean };
 }
 
 // Polls the bridge through the Edge Function (the bridge key never reaches
@@ -65,21 +67,25 @@ export function useBridgeStatus(accountId: string | undefined) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const query = useQuery({
-    queryKey: ["bridge-status", accountId],
+    queryKey: ["bridge-status", user?.id, accountId],
     queryFn: async () => {
       const status = await invokeWhatsApp<BridgeStatus>({ action: "bridge-status", accountId });
       // The function adopts the real name/number once the QR is scanned.
       if (status.state === "ready") queryClient.invalidateQueries({ queryKey: ["connected-accounts", user?.id] });
       return status;
     },
-    enabled: Boolean(accountId),
+    enabled: Boolean(user?.id && accountId),
+    gcTime: 0,
     retry: false,
     refetchInterval: (q) => (q.state.data?.state === "ready" ? 30000 : 3000),
   });
 
   const session = useMutation({
     mutationFn: (op: "start" | "restart" | "logout") => invokeWhatsApp<BridgeStatus>({ action: "bridge-session", accountId, op }),
-    onSuccess: (status) => queryClient.setQueryData(["bridge-status", accountId], status),
+    onSuccess: (status) => {
+      queryClient.setQueryData(["bridge-status", user?.id, accountId], status);
+      queryClient.invalidateQueries({ queryKey: ["connected-accounts", user?.id] });
+    },
     onError: (e: Error) => toast.error(e.message || "Could not change the WhatsApp session"),
   });
 

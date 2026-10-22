@@ -5,6 +5,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 import { PROVIDERS } from "../_shared/providers.ts";
+import { bridgeRequest } from "../_shared/whatsapp.ts";
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -16,8 +17,8 @@ async function bridgeReachable(): Promise<{ ready: boolean; reason?: string }> {
     return { ready: false, reason: "WhatsApp QR linking hasn't been set up on this server yet." };
   }
   try {
-    const res = await fetch(`${base.replace(/\/$/, "")}/health`, { signal: AbortSignal.timeout(6000) });
-    return res.ok ? { ready: true } : { ready: false, reason: "The WhatsApp service is not responding." };
+    const info = await bridgeRequest("/api/info");
+    return info.service === "socialverse-whatsapp" ? { ready: true } : { ready: false, reason: "The WhatsApp service is not responding." };
   } catch {
     return { ready: false, reason: "The WhatsApp service is offline right now." };
   }

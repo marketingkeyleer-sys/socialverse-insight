@@ -3,7 +3,7 @@ WORKDIR /app
 # whatsapp-web.js drives a real Chromium. Install it from Debian rather than
 # letting Puppeteer download its own copy.
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends chromium ca-certificates fonts-liberation \
+  && apt-get install -y --no-install-recommends chromium ca-certificates fonts-liberation zstd \
   && rm -rf /var/lib/apt/lists/*
 ENV PUPPETEER_SKIP_DOWNLOAD=true \
     PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium \

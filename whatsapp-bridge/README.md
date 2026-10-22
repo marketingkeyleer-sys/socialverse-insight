@@ -8,7 +8,9 @@ A small multi-user service that holds QR-linked WhatsApp sessions (one per Socia
 
 It exists because a WhatsApp Web session needs a real Chromium and a process that stays running, which Supabase Edge Functions can't host. SocialVerse talks to it over HTTPS with a shared API key.
 
-> **Risk.** This uses the unofficial `whatsapp-web.js` library. WhatsApp's terms don't allow automation like this, and numbers that message people who haven't opted in, or send too fast, can be restricted or banned. Use a number you can afford to lose. For a compliant route that can't reach groups, connect the official Cloud API instead (the other tab in SocialVerse's connect dialog).
+The QR connection uses an unofficial linked-device library. Select `WHATSAPP_ENGINE=open-wa` for open-wa 5.6.7, or `whatsapp-web.js` for existing legacy sessions. The official Cloud API remains available in the connect dialog.
+
+For the installed local Windows host, use [the Windows host guide](../docs/WHATSAPP_WINDOWS_HOST.md). It includes start/stop scripts, private runtime details and the HTTPS tunnel configuration.
 
 ## Set up once (you, the operator)
 
@@ -32,7 +34,7 @@ npm start              # http://127.0.0.1:3000
 npm test
 ```
 
-SocialVerse can only reach a public HTTPS address, so local runs are for development and tests.
+SocialVerse needs a public HTTPS address. The Windows launcher supplies an authenticated tunnel to the local service and updates its Supabase server secrets when the tunnel URL changes. The computer must remain awake and online.
 
 ## API
 
@@ -41,6 +43,7 @@ Every `/api` route needs `Authorization: Bearer <BRIDGE_API_KEY>`. Only `/health
 | Route | Purpose |
 | --- | --- |
 | `GET /health` | Health check |
+| `GET /api/info` | Authenticated service and engine check |
 | `GET /api/sessions/:id/status` | `{ state, qr, account, error }`. `state` is `disconnected`, `starting`, `qr`, `authenticating`, `ready` or `error`; `qr` is a PNG data URL |
 | `POST /api/sessions/:id/start` / `restart` / `logout` | Control that number's session |
 | `GET /api/sessions/:id/groups` | `{ groups: [{ id, name, size }] }` (needs `ready`) |

@@ -2,6 +2,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { WhatsAppSession } = require('./session');
+const { OpenWaSession } = require('./open-wa-session');
 
 const ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -9,11 +10,13 @@ const ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 // their own QR against this one hosted bridge. Each session is its own
 // Chromium, which is what limits how many fit (MAX_SESSIONS).
 class SessionManager {
-  constructor({ dataDir, max = 10, factory, onIncoming }) {
+  constructor({ dataDir, max = 10, factory, onIncoming, engine = process.env.WHATSAPP_ENGINE || 'whatsapp-web.js' }) {
     this.dataDir = dataDir;
     this.max = max;
     this.onIncoming = onIncoming;
-    this.factory = factory || ((id) => new WhatsAppSession({ dataDir, clientId: id }));
+    if (!['open-wa', 'whatsapp-web.js'].includes(engine)) throw new Error('Unknown WhatsApp engine.');
+    this.engine = engine;
+    this.factory = factory || ((id) => new (engine === 'open-wa' ? OpenWaSession : WhatsAppSession)({ dataDir, clientId: id }));
     this.sessions = new Map();
   }
 
@@ -43,7 +46,7 @@ class SessionManager {
 
   status(id) {
     const session = this.get(id);
-    return session ? session.status() : { state: 'disconnected', qr: null, account: null, error: '' };
+    return session ? session.status() : { state: 'disconnected', qr: null, account: null, error: '', engine: this.engine, capabilities: { pairingCode: this.engine !== 'open-wa', remoteLogout: this.engine !== 'open-wa' } };
   }
 
   async logout(id) {
@@ -57,6 +60,11 @@ class SessionManager {
   // Accounts whose phone was linked before a restart: their login is still on
   // disk, so they reconnect without anyone scanning again.
   savedIds() {
+    if (this.engine === 'open-wa') {
+      const root = path.join(this.dataDir, 'open-wa');
+      if (!fs.existsSync(root)) return [];
+      return fs.readdirSync(root).filter(id => SessionManager.isValidId(id) && fs.existsSync(path.join(root, id, 'linked')));
+    }
     const dir = path.join(this.dataDir, 'whatsapp-session');
     if (!fs.existsSync(dir)) return [];
     return fs

@@ -259,9 +259,13 @@ test("API: /health is open, everything under /api needs the key", async () => {
   await withApp(async (base) => {
     assert.equal((await fetch(`${base}/health`)).status, 200);
     assert.equal((await fetch(`${base}/api/sessions/${A1}/status`)).status, 401);
+    assert.equal((await fetch(`${base}/api/info`)).status, 401);
     assert.equal((await fetch(`${base}/api/sessions/${A1}/status`, { headers: { Authorization: "Bearer nope" } })).status, 401);
     const ok = await fetch(`${base}/api/sessions/${A1}/status`, { headers: auth });
+    assert.equal(ok.headers.get('cache-control'), 'no-store');
     assert.equal((await ok.json()).state, "disconnected");
+    const info = await fetch(`${base}/api/info`, { headers: auth });
+    assert.equal((await info.json()).service, 'socialverse-whatsapp');
   });
 });
 

@@ -10,3 +10,4 @@ dist
 supabase/.temp
 *.log
 .tmp-campaign-queue-qa/
+.local-tools/

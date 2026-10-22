@@ -73,11 +73,14 @@ function createApp({ apiKey, sessions, jobs, callbackOptions = {} }) {
   app.get("/health", (_req, res) => res.json({ ok: true, sessions: sessions.sessions.size }));
 
   app.use("/api", (req, res, next) => {
+    res.set('Cache-Control', 'no-store');
     const header = String(req.headers.authorization || "");
     const token = header.startsWith("Bearer ") ? header.slice(7) : "";
     if (!token || !safeEqual(token, apiKey)) return res.status(401).json({ error: "Invalid API key." });
     next();
   });
+
+  app.get('/api/info', (_req, res) => res.json({ service: 'socialverse-whatsapp', engine: process.env.WHATSAPP_ENGINE || 'whatsapp-web.js' }));
 
   const route = (handler) => async (req, res) => {
     try {
