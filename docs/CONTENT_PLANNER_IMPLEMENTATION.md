@@ -30,6 +30,9 @@
 - Approval review is available again. Planner tables, policies, functions and the protected management/worker endpoints are deployed. LinkedIn sync/publishing bundles are updated.
 - The reversible production-database transaction passed queue claims, daily reservation limits, idempotent creation, review-first drafts, pause/resume, automatic scheduling, duplicate-completion prevention and foreign-user RLS checks. Every transaction test write was rolled back. No paid campaign or public social post was activated for testing.
 - The overlapping-worker test also passed: a second connection skipped the locked plan. Its temporary QA plan was removed and the remaining QA-plan count was zero. The protected worker is scheduled every five minutes; real plans remain paused until the user explicitly activates them.
+- The protected idle worker probe returned HTTP 200 with `processed: 0` and no error. No provider calls or social posts were made by the probe.
+- The frontend was pushed to GitHub main and published through Lovable. Browser checks confirmed the live Content planner navigation, month/year preview, All selection, company-switch form reset and successful owner-scoped plan loading. A year preview produced 157 posting dates × two eligible destinations = 314 planned posts, without saving or activating a plan.
+- Both brands' LinkedIn follower points were verified on the public Analytics page. Unavailable daily reach displays an explicit explanation instead of a fabricated zero series. New daily observations will build a trend over time; historical observations were not invented.
 
 ## Deployment and repeatable verification sequence
 
@@ -41,6 +44,7 @@ Use the existing authenticated Supabase CLI; do not retrieve administrative API 
 4. Deploy `content-campaigns` and `run-content-campaigns` using the existing function configuration.
 5. Deploy the updated `sync-account`, `run-due-syncs`, `publish-post` and `run-due-posts` bundles, because they include LinkedIn sync code.
 6. Apply `scripts/enable-content-campaign-cron.sql`. It reuses the existing authenticated cron command inside the database without exposing its secret. Verify only job name/schedule/active state.
+   Optional `scripts/verify-campaign-worker-idle.sql` probes the worker only when no plans are active. Read its returned request ID from `net._http_response`, selecting only status and sanitized outcome fields.
 7. Commit the relevant files, push the authorized main branch and publish through Lovable. Verify both brands' LinkedIn graphs and planner controls in the browser.
 8. After the AI quota issue is resolved, test a review-first plan in an isolated brand, inspect its draft and then test an explicitly approved live post. No automatic campaign should be activated on the user's behalf without reviewing its concrete company brief, destinations and expected usage.
 
