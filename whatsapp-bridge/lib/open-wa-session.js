@@ -36,10 +36,22 @@ class OpenWaSession extends EventEmitter {
   }
   isReady() { return this.state === 'ready' && this.run?.client?.getState() === 'READY'; }
   setState(state, error = '') {
+    clearTimeout(this.loadingTimer);
     this.state = state;
     this.error = error;
     if (state !== 'qr') this.qr = null;
     if (state !== 'ready') this.account = null;
+    if (state === 'starting' || state === 'authenticating') {
+      const run = this.run;
+      this.loadingTimer = setTimeout(() => {
+        if (!run || this.run !== run) return;
+        this.run = null;
+        run.listeners.splice(0).forEach(off => off());
+        this.setState('error', 'WhatsApp is taking too long to load. Restart the connection and check this computer’s internet connection.');
+        void run.client?.stop('startup-timeout').catch(() => {});
+      }, 120000);
+      this.loadingTimer.unref();
+    }
     this.emit('status', this.status());
   }
   async start() {
@@ -61,7 +73,9 @@ class OpenWaSession extends EventEmitter {
           sessionId: this.clientId, userDataDir: path.join(this.directory, 'profile'),
           sessionDataPath: path.join(this.directory, 'session.data.json'), skipSessionSave: false,
           sessionDataEncryptionKeyFile: keyFile,
-          headless: true, ephemeral: false, qrTimeoutMs: 600000, authTimeoutMs: 600000,
+          // Human pairing is not a startup failure. Keep rotating QR codes
+          // until scanned or explicitly stopped; setState bounds loading/sync.
+          headless: true, ephemeral: false, qrTimeoutMs: 0, authTimeoutMs: 0,
           executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
           browser: { download: 'never' }, eventMode: false, debug: false,
           browserArgs: process.env.CHROME_NO_SANDBOX === 'true' ? ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'] : [],

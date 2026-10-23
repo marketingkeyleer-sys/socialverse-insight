@@ -24,6 +24,8 @@ This host does not automatically start at Windows login. Run Start-Local after r
 3. On your phone open WhatsApp → Linked devices → Link a device and scan privately.
 4. Wait for Linked and the real phone number to appear.
 
+QR pairing stays available while the session and host run, until scanned or explicitly stopped. Browser startup and post-scan loading still have a two-minute watchdog, so a stalled browser can be restarted. A session error displays its explanation and a Restart control instead of being mislabeled as a network outage.
+
 open-wa is an unofficial linked-device integration. The official Cloud API remains available. This open-wa integration currently supports QR pairing; unsupported phone-code pairing is hidden. Some open-wa features may require its own license; no license or subscription was purchased.
 
 The connection is marked active only after authentication succeeds. Unfinished connections can be resumed without consuming another account slot. Brand ownership and account ownership are checked by the server. Local capacity is limited by MAX_SESSIONS and available RAM, not unlimited.

@@ -37,11 +37,29 @@ function setup(t, overrides = {}) {
   t.after(() => session.stop());
   return { session, client, directory, events, complete, calls, options: () => options };
 }
-test('authentication detection cannot cut short the QR pairing window', async t => {
+test('human QR pairing stays available until scanned or explicitly stopped', async t => {
   const { session, options } = setup(t);
   await session.start(); await next();
-  assert.ok(options().qrTimeoutMs >= 600000, 'people must have at least ten minutes to pair');
-  assert.ok(options().authTimeoutMs >= options().qrTimeoutMs, 'authentication detection must not expire before QR pairing');
+  assert.equal(options().qrTimeoutMs, 0, 'the SDK must not expire an unscanned QR');
+  assert.equal(options().authTimeoutMs, 0, 'authentication detection must not cancel human pairing');
+});
+test('loading watchdog stops a stalled startup but does not expire a visible QR', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const stalled = setup(t);
+  await stalled.session.start(); await next();
+  t.mock.timers.tick(120001);
+  assert.equal(stalled.session.status().state, 'error');
+  assert.match(stalled.session.status().error, /taking too long/);
+  await next();
+  assert.ok(stalled.calls.includes('stop'));
+
+  const pairing = setup(t);
+  await pairing.session.start(); await next();
+  pairing.events.emit('launch.auth.qr.generated', { details: { qr: 'private-test' } });
+  await next();
+  t.mock.timers.tick(3600000);
+  assert.equal(pairing.session.status().state, 'qr');
+  assert.equal(pairing.calls.includes('stop'), false);
 });
 test('QR events remain scoped to their client and are removed when stopped', async t => {
   const a = setup(t);
