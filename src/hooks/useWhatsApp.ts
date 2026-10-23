@@ -24,7 +24,11 @@ async function invokeWhatsApp<T>(body: Record<string, unknown>): Promise<T> {
     }
     throw new Error(error.message);
   }
-  if (data && typeof data === "object" && "error" in data && data.error) throw new Error(data.error);
+  // A session can be reachable but waiting for a retry. Its `error` explains
+  // that state; throwing here hides the Restart control as a network failure.
+  const sessionResponse = ["bridge-status", "bridge-session"].includes(String(body.action))
+    && data && typeof data === "object" && "state" in data;
+  if (data && typeof data === "object" && "error" in data && data.error && !sessionResponse) throw new Error(data.error);
   return data as T;
 }
 
