@@ -16,6 +16,7 @@ function setup(t, overrides = {}) {
   let complete;
   const started = new Promise(resolve => { complete = resolve; });
   const calls = [];
+  let options;
   const client = {
     start: () => started,
     stop: async () => { calls.push('stop'); complete(); },
@@ -31,11 +32,17 @@ function setup(t, overrides = {}) {
   };
   const session = new OpenWaSession({ dataDir: directory, clientId: id,
     encodeQR: async value => `image:${value}`,
-    clientFactory: async () => ({ client, core: { events, getReadiness: () => ({ exposureSafe: true }) } }),
+    clientFactory: async config => { options = config; return { client, core: { events, getReadiness: () => ({ exposureSafe: true }) } }; },
   });
   t.after(() => session.stop());
-  return { session, client, directory, events, complete, calls };
+  return { session, client, directory, events, complete, calls, options: () => options };
 }
+test('authentication detection cannot cut short the QR pairing window', async t => {
+  const { session, options } = setup(t);
+  await session.start(); await next();
+  assert.ok(options().qrTimeoutMs >= 600000, 'people must have at least ten minutes to pair');
+  assert.ok(options().authTimeoutMs >= options().qrTimeoutMs, 'authentication detection must not expire before QR pairing');
+});
 test('QR events remain scoped to their client and are removed when stopped', async t => {
   const a = setup(t);
   const b = setup(t);

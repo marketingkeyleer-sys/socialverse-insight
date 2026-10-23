@@ -61,7 +61,7 @@ class OpenWaSession extends EventEmitter {
           sessionId: this.clientId, userDataDir: path.join(this.directory, 'profile'),
           sessionDataPath: path.join(this.directory, 'session.data.json'), skipSessionSave: false,
           sessionDataEncryptionKeyFile: keyFile,
-          headless: true, ephemeral: false, qrTimeoutMs: 600000, authTimeoutMs: 120000,
+          headless: true, ephemeral: false, qrTimeoutMs: 600000, authTimeoutMs: 600000,
           executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
           browser: { download: 'never' }, eventMode: false, debug: false,
           browserArgs: process.env.CHROME_NO_SANDBOX === 'true' ? ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'] : [],
