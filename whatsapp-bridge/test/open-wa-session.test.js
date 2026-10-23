@@ -94,11 +94,23 @@ test('cannot send before pairing or create sessions outside UUID paths', async t
   assert.throws(() => new OpenWaSession({ dataDir: directory, clientId: '../other' }), /Invalid account/);
 });
 test('startup failure clears the old client and allows another attempt without exposing error payloads', async t => {
-  const { session, client } = setup(t, { start: async () => { throw new Error('private-token'); } });
+  const { session, client, directory } = setup(t, { start: async () => { throw new Error('private-token'); } });
   await session.start(); await next();
   assert.equal(session.status().state, 'error');
   assert.doesNotMatch(session.status().error, /private-token/);
+  const diagnostic = fs.readFileSync(path.join(directory, 'open-wa', id, 'startup-diagnostic.json'), 'utf8');
+  assert.doesNotMatch(diagnostic, /private-token/);
   client.start = async () => {};
   await session.start(); await next();
   assert.equal(session.status().state, 'ready');
+});
+test('expired QR pairing gives actionable feedback without retaining private SDK payloads', async t => {
+  const { session, directory } = setup(t, { start: async () => { throw new Error('Timed out waiting for QR scan: private-token'); } });
+  await session.start(); await next();
+  assert.equal(session.status().state, 'error');
+  assert.match(session.status().error, /pairing window expired/);
+  const diagnostic = JSON.parse(fs.readFileSync(path.join(directory, 'open-wa', id, 'startup-diagnostic.json'), 'utf8'));
+  assert.equal(diagnostic.category, 'qr-timeout');
+  assert.equal(diagnostic.message, undefined);
+  assert.doesNotMatch(JSON.stringify(diagnostic), /private-token/);
 });

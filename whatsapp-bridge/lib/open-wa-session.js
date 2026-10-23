@@ -49,7 +49,7 @@ class OpenWaSession extends EventEmitter {
     fs.mkdirSync(this.directory, { recursive: true, mode: 0o700 });
     const keyFile = path.join(this.directory, 'encryption.key');
     if (!fs.existsSync(keyFile)) fs.writeFileSync(keyFile, crypto.randomBytes(32).toString('base64'), { flag: 'wx', mode: 0o600 });
-    const run = { client: null, listeners: [], qrVersion: 0 };
+    const run = { client: null, listeners: [], qrVersion: 0, phase: 'launch.create.start' };
     this.run = run;
     const current = () => this.run === run;
     this.setState('starting');
@@ -61,7 +61,7 @@ class OpenWaSession extends EventEmitter {
           sessionId: this.clientId, userDataDir: path.join(this.directory, 'profile'),
           sessionDataPath: path.join(this.directory, 'session.data.json'), skipSessionSave: false,
           sessionDataEncryptionKeyFile: keyFile,
-          headless: true, ephemeral: false, qrTimeoutMs: 180000, authTimeoutMs: 120000,
+          headless: true, ephemeral: false, qrTimeoutMs: 600000, authTimeoutMs: 120000,
           executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
           browser: { download: 'never' }, eventMode: false, debug: false,
           browserArgs: process.env.CHROME_NO_SANDBOX === 'true' ? ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'] : [],
@@ -73,6 +73,13 @@ class OpenWaSession extends EventEmitter {
         function listen(event, handler) {
           core.events.on(event, handler);
           run.listeners.push(() => core.events.off(event, handler));
+        }
+        for (const phase of ['launch.browser.init.before', 'launch.browser.init.after', 'launch.navigation.gotoWaWeb.before',
+          'launch.navigation.gotoWaWeb.after', 'launch.auth.check.before', 'launch.auth.check.after', 'launch.auth.qr.generated',
+          'launch.auth.qr.scanned', 'launch.auth.syncing', 'launch.auth.timeout', 'launch.wapi.inject.before', 'launch.wapi.inject.after',
+          'launch.session.validityCheck.before', 'launch.session.validityCheck.after', 'launch.license.check.before', 'launch.license.check.after',
+          'launch.patch.init.before', 'launch.patch.init.after', 'launch.client.finalize.before', 'launch.client.finalize.after']) {
+          listen(phase, () => { run.phase = phase; });
         }
         listen('launch.auth.qr.generated', async event => {
           if (!current() || !event.details?.qr) return;
@@ -115,8 +122,13 @@ class OpenWaSession extends EventEmitter {
       } catch (error) {
         if (current()) {
           this.run = null;
-          const code = String(error?.message || '').match(/\b(?:PORTABLE_[A-Z_]+|SESSION_[A-Z_]+|[A-Z_]+_TIMEOUT)\b/)?.[0];
-          this.setState('error', `WhatsApp could not start${code ? ` (${code})` : ''}. Check this computer’s connection and restart to get a fresh QR code.`);
+          const message = String(error?.message || '');
+          const code = message.match(/\b(?:PORTABLE_[A-Z_]+|SESSION_[A-Z_]+|[A-Z_]+_TIMEOUT)\b/)?.[0];
+          const qrTimeout = /(?:qr.*(?:timeout|timed? out)|(?:timeout|timed? out).*qr)/i.test(message);
+          // Only fixed categories and our event names are retained, never raw SDK errors.
+          try { fs.writeFileSync(path.join(this.directory, 'startup-diagnostic.json'), JSON.stringify({ at: new Date().toISOString(), phase: run.phase, code: code || null, category: qrTimeout ? 'qr-timeout' : 'startup-failure' }), { mode: 0o600 }); } catch { /* Diagnostics must not prevent cleanup. */ }
+          this.setState('error', qrTimeout ? 'The QR pairing window expired. Get a fresh code and scan it from WhatsApp Linked devices.'
+            : `WhatsApp could not start${code ? ` (${code})` : ''}. Check this computer’s connection and restart to get a fresh QR code.`);
         }
         run.listeners.splice(0).forEach(off => off());
         await run.client?.stop('startup-failed').catch(() => {});
